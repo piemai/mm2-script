@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (With Auto-Kill, Safe Teleport, Noclip & Fixed ESP)
+--// Kyuzxc MM2 Red Mod Menu (Safe Teleport to Spawn, Auto-Kill, Noclip & Fixed ESP)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -258,7 +258,7 @@ function Library:Load()
                 else
                     togButton.BackgroundColor3 = tab.State and accentColor or Color3.fromRGB(45, 25, 25)
                     togButton.TextColor3 = tab.State and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 160, 160)
-                    togButton.Text = "  " .. tab.Name .." : " .. (tab.State and "ON" or "OFF")
+                    togButton.Text = "  " .. tab.Name .. " : " .. (tab.State and "ON" or "OFF")
                     togButton.TextXAlignment = Enum.TextXAlignment.Left
                 end
                 
@@ -389,17 +389,23 @@ end)
 
 --// Category 3: Teleport & Safe
 local catTeleport = Window:CreateCategory("Teleport")
-catTeleport:CreateTab("teleport to safest place", {isButton = true}, function()
+catTeleport:CreateTab("teleport to spawn", {isButton = true}, function()
     local myChar = player.Character
     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-        local highestPos = Vector3.new(0, 100, 0)
-        for _, part in ipairs(workspace:GetDescendants()) do
-            if part:IsA("BasePart") and part.Position.Y > highestPos.Y and not part.Parent:FindFirstChildOfClass("Humanoid") then
-                highestPos = part.Position + Vector3.new(0, 5, 0)
+        local foundSpawn = false
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if (obj.Name == "SpawnLocation" or obj.Name == "Spawn") and obj:IsA("BasePart") then
+                myChar.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
+                notify("Naka-teleport sa spawn point!")
+                foundSpawn = true
+                break
             end
         end
-        myChar.HumanoidRootPart.CFrame = CFrame.new(highestPos)
-        notify("Naka-teleport sa ligtas na lugar!")
+        if not foundSpawn then
+            -- Fallback kung walang mahanap na part, balik sa default coordinate
+            myChar.HumanoidRootPart.CFrame = CFrame.new(0, 10, 0)
+            notify("Naka-teleport sa default spawn!")
+        end
     end
 end)
 
