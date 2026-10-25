@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (MM2 Script + AntiCheat Bypass)
+--// Kyuzxc MM2 Red Mod Menu (Brutal v7.0: Upgraded Teleport Dropdown + FOV Slider + Fixed Close Button)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -176,7 +176,7 @@ aimBtn.BackgroundTransparency = 0.2
 aimBtn.TextColor3 = Color3.fromRGB(255, 120, 120)
 aimBtn.Font = Enum.Font.GothamBold
 aimBtn.TextSize = 12
-aimBtn.Text = "🎯 SHOOT MURD"
+aimBtn.Text = "SHOOT MURD"
 aimBtn.Visible = false
 aimBtn.Active = true
 aimBtn.Draggable = true
@@ -298,7 +298,13 @@ function Library:CreateWindow(title)
                 Name = name,
                 State = config and config.enabled or false,
                 Callback = callback,
-                IsButton = config and config.isButton or false
+                IsButton = config and config.isButton or false,
+                IsDropdown = config and config.isDropdown or false,
+                IsSlider = config and config.isSlider or false,
+                Options = config and config.options or nil,
+                Min = config and config.min or 50,
+                Max = config and config.max or 300,
+                Value = config and config.value or fovRadius
             })
         end
         
@@ -320,8 +326,8 @@ function Library:Load()
     for _, win in ipairs(self.Windows) do
         -- Main Glass Frame (Resizable)
         local mainFrame = Instance.new("Frame")
-        mainFrame.Size = UDim2.new(0, 520, 0, 360)
-        mainFrame.Position = UDim2.new(0.5, -260, 0.3, -180)
+        mainFrame.Size = UDim2.new(0, 540, 0, 380)
+        mainFrame.Position = UDim2.new(0.5, -270, 0.3, -190)
         mainFrame.BackgroundColor3 = Color3.fromRGB(16, 10, 10)
         mainFrame.BackgroundTransparency = 0.05
         mainFrame.BorderSizePixel = 0
@@ -363,8 +369,8 @@ function Library:Load()
         UserInputService.InputChanged:Connect(function(input)
             if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                 local delta = input.Position - startMousePos
-                local newX = math.clamp(dragStartSize.X + delta.X, 420, 800)
-                local newY = math.clamp(dragStartSize.Y + delta.Y, 280, 600)
+                local newX = math.clamp(dragStartSize.X + delta.X, 440, 850)
+                local newY = math.clamp(dragStartSize.Y + delta.Y, 300, 650)
                 mainFrame.Size = UDim2.new(0, newX, 0, newY)
             end
         end)
@@ -404,15 +410,15 @@ function Library:Load()
         titleBar.Text = "  ⚡ " .. string.upper(win.Title)
         titleBar.Parent = header
         
-        --// Close Button
+        --// Close Button (Fixed Text-based X without missing glyphs)
         local closeBtn = Instance.new("TextButton")
         closeBtn.Size = UDim2.new(0, 28, 0, 28)
         closeBtn.Position = UDim2.new(1, -36, 0, 9)
         closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
         closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        closeBtn.Text = "✕"
+        closeBtn.Text = "X"
         closeBtn.Font = Enum.Font.GothamBold
-        closeBtn.TextSize = 12
+        closeBtn.TextSize = 13
         closeBtn.Parent = header
         
         local closeCorner = Instance.new("UICorner")
@@ -441,9 +447,9 @@ function Library:Load()
         minBtn.Position = UDim2.new(1, -70, 0, 9)
         minBtn.BackgroundColor3 = Color3.fromRGB(45, 25, 25)
         minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        minBtn.Text = "—"
+        minBtn.Text = "-"
         minBtn.Font = Enum.Font.GothamBold
-        minBtn.TextSize = 12
+        minBtn.TextSize = 14
         minBtn.Parent = header
         
         local minCorner = Instance.new("UICorner")
@@ -527,51 +533,207 @@ function Library:Load()
             itemLayout.Parent = itemHolder
             
             for idx, tab in ipairs(cat.Tabs) do
-                local togButton = Instance.new("TextButton")
-                togButton.LayoutOrder = idx * 2
-                togButton.Size = UDim2.new(1, 0, 0, 38)
-                
-                if tab.IsButton then
-                    togButton.BackgroundColor3 = Color3.fromRGB(190, 50, 50)
-                    togButton.BackgroundTransparency = 0.1
-                    togButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    togButton.Text = tab.Name
-                else
-                    togButton.BackgroundColor3 = tab.State and accentColor or Color3.fromRGB(35, 22, 22)
-                    togButton.BackgroundTransparency = tab.State and 0.1 or 0.4
-                    togButton.TextColor3 = tab.State and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(170, 150, 150)
-                    togButton.Text = "  " .. tab.Name .. " : " .. (tab.State and "ON" or "OFF")
-                    togButton.TextXAlignment = Enum.TextXAlignment.Left
-                end
-                
-                if not tab.IsButton then
-                    local pad = Instance.new("UIPadding")
-                    pad.PaddingLeft = UDim.new(0, 8)
-                    pad.Parent = togButton
-                end
+                if tab.IsDropdown then
+                    -- Dropdown Implementation
+                    local dropFrame = Instance.new("Frame")
+                    dropFrame.LayoutOrder = idx * 2
+                    dropFrame.Size = UDim2.new(1, 0, 0, 38)
+                    dropFrame.BackgroundColor3 = Color3.fromRGB(35, 22, 22)
+                    dropFrame.BackgroundTransparency = 0.4
+                    dropFrame.Parent = itemHolder
 
-                togButton.Font = Enum.Font.GothamBold
-                togButton.TextSize = 11
-                togButton.Parent = itemHolder
-                
-                local corner = Instance.new("UICorner")
-                corner.CornerRadius = UDim.new(0, 8)
-                corner.Parent = togButton
-                
-                local currentState = tab.State
-                if not tab.IsButton then
-                    togButton.MouseButton1Click:Connect(function()
-                        currentState = not currentState
-                        togButton.Text = "  " .. tab.Name .. " : " .. (currentState and "ON" or "OFF")
-                        togButton.BackgroundColor3 = currentState and accentColor or Color3.fromRGB(35, 22, 22)
-                        togButton.BackgroundTransparency = currentState and 0.1 or 0.4
-                        togButton.TextColor3 = currentState and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(170, 150, 150)
-                        if tab.Callback then tab.Callback(currentState) end
+                    local dropCorner = Instance.new("UICorner")
+                    dropCorner.CornerRadius = UDim.new(0, 8)
+                    dropCorner.Parent = dropFrame
+
+                    local dropBtn = Instance.new("TextButton")
+                    dropBtn.Size = UDim2.new(1, 0, 0, 38)
+                    dropBtn.BackgroundTransparency = 1
+                    dropBtn.TextColor3 = Color3.fromRGB(220, 180, 180)
+                    dropBtn.Font = Enum.Font.GothamBold
+                    dropBtn.TextSize = 11
+                    dropBtn.Text = "  " .. tab.Name .. ": [ Select Player ] ▾"
+                    dropBtn.TextXAlignment = Enum.TextXAlignment.Left
+                    dropBtn.Parent = dropFrame
+
+                    local dropList = Instance.new("ScrollingFrame")
+                    dropList.Size = UDim2.new(1, 0, 0, 0)
+                    dropList.Position = UDim2.new(0, 0, 1, 4)
+                    dropList.BackgroundColor3 = Color3.fromRGB(24, 14, 14)
+                    dropList.BorderSizePixel = 0
+                    dropList.Visible = false
+                    dropList.ZIndex = 15
+                    dropList.CanvasSize = UDim2.new(0, 0, 0, 0)
+                    dropList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+                    dropList.ScrollBarThickness = 2
+                    dropList.Parent = dropFrame
+
+                    local listLayout = Instance.new("UIListLayout")
+                    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                    listLayout.Parent = dropList
+
+                    local dropdownOpen = false
+                    dropBtn.MouseButton1Click:Connect(function()
+                        dropdownOpen = not dropdownOpen
+                        if dropdownOpen then
+                            dropList.Visible = true
+                            dropList.Size = UDim2.new(1, 0, 0, math.clamp(#Players:GetPlayers() * 32, 32, 140))
+                        else
+                            dropList.Visible = false
+                            dropList.Size = UDim2.new(0, 0, 0, 0)
+                        end
                     end)
+
+                    -- Refresh dropdown list dynamically
+                    task.spawn(function()
+                        while task.wait(1) do
+                            if dropList.Parent then
+                                for _, ch in ipairs(dropList:GetChildren()) do
+                                    if ch:IsA("TextButton") then ch:Destroy() end
+                                end
+                                for _, p in ipairs(Players:GetPlayers()) do
+                                    if p ~= player then
+                                        local optBtn = Instance.new("TextButton")
+                                        optBtn.Size = UDim2.new(1, 0, 0, 32)
+                                        optBtn.BackgroundColor3 = Color3.fromRGB(30, 18, 18)
+                                        optBtn.TextColor3 = Color3.fromRGB(255, 200, 200)
+                                        optBtn.Font = Enum.Font.Gotham
+                                        optBtn.TextSize = 11
+                                        optBtn.Text = "   " .. p.DisplayName
+                                        optBtn.TextXAlignment = Enum.TextXAlignment.Left
+                                        optBtn.ZIndex = 16
+                                        optBtn.Parent = dropList
+
+                                        optBtn.MouseButton1Click:Connect(function()
+                                            selectedTpPlayer = p
+                                            dropBtn.Text = "  " .. tab.Name .. ": " .. p.DisplayName .. " ▾"
+                                            dropdownOpen = false
+                                            dropList.Visible = false
+                                            dropList.Size = UDim2.new(0, 0, 0, 0)
+                                            if tab.Callback then tab.Callback(p) end
+                                        end)
+                                    end
+                                end
+                            end
+                        end
+                    end)
+
+                elseif tab.IsSlider then
+                    -- Slider Implementation
+                    local sliderFrame = Instance.new("Frame")
+                    sliderFrame.LayoutOrder = idx * 2
+                    sliderFrame.Size = UDim2.new(1, 0, 0, 52)
+                    sliderFrame.BackgroundColor3 = Color3.fromRGB(35, 22, 22)
+                    sliderFrame.BackgroundTransparency = 0.4
+                    sliderFrame.Parent = itemHolder
+
+                    local sliderCorner = Instance.new("UICorner")
+                    sliderCorner.CornerRadius = UDim.new(0, 8)
+                    sliderCorner.Parent = sliderFrame
+
+                    local sliderLabel = Instance.new("TextLabel")
+                    sliderLabel.Size = UDim2.new(1, -12, 0, 24)
+                    sliderLabel.Position = UDim2.new(0, 6, 0, 4)
+                    sliderLabel.BackgroundTransparency = 1
+                    sliderLabel.TextColor3 = Color3.fromRGB(220, 180, 180)
+                    sliderLabel.Font = Enum.Font.GothamBold
+                    sliderLabel.TextSize = 11
+                    sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    sliderLabel.Text = "  " .. tab.Name .. ": " .. tostring(tab.Value)
+                    sliderLabel.Parent = sliderFrame
+
+                    local bar = Instance.new("Frame")
+                    bar.Size = UDim2.new(1, -20, 0, 8)
+                    bar.Position = UDim2.new(0, 10, 0, 34)
+                    bar.BackgroundColor3 = Color3.fromRGB(50, 30, 30)
+                    bar.BorderSizePixel = 0
+                    bar.Parent = sliderFrame
+
+                    local barCorner = Instance.new("UICorner")
+                    barCorner.CornerRadius = UDim.new(1, 0)
+                    barCorner.Parent = bar
+
+                    local fill = Instance.new("Frame")
+                    fill.Size = UDim2.new((tab.Value - tab.Min) / (tab.Max - tab.Min), 0, 1, 0)
+                    fill.BackgroundColor3 = accentColor
+                    fill.BorderSizePixel = 0
+                    fill.Parent = bar
+
+                    local fillCorner = Instance.new("UICorner")
+                    fillCorner.CornerRadius = UDim.new(1, 0)
+                    fillCorner.Parent = fill
+
+                    local sliding = false
+                    bar.InputBegan:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                            sliding = true
+                        end
+                    end)
+
+                    UserInputService.InputEnded:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                            sliding = false
+                        end
+                    end)
+
+                    UserInputService.InputChanged:Connect(function(input)
+                        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                            local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+                            local val = math.floor(tab.Min + (tab.Max - tab.Min) * pos)
+                            fill.Size = UDim2.new(pos, 0, 1, 0)
+                            sliderLabel.Text = "  " .. tab.Name .. ": " .. tostring(val)
+                            if tab.Callback then tab.Callback(val) end
+                        end
+                    end)
+
                 else
-                    togButton.MouseButton1Click:Connect(function()
-                        if tab.Callback then tab.Callback() end
-                    end)
+                    -- Standard Button or Toggle
+                    local togButton = Instance.new("TextButton")
+                    togButton.LayoutOrder = idx * 2
+                    togButton.Size = UDim2.new(1, 0, 0, 38)
+                    
+                    if tab.IsButton then
+                        togButton.BackgroundColor3 = Color3.fromRGB(190, 50, 50)
+                        togButton.BackgroundTransparency = 0.1
+                        togButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        togButton.Text = tab.Name
+                    else
+                        togButton.BackgroundColor3 = tab.State and accentColor or Color3.fromRGB(35, 22, 22)
+                        togButton.BackgroundTransparency = tab.State and 0.1 or 0.4
+                        togButton.TextColor3 = tab.State and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(170, 150, 150)
+                        togButton.Text = "  " .. tab.Name .. " : " .. (tab.State and "ON" or "OFF")
+                        togButton.TextXAlignment = Enum.TextXAlignment.Left
+                    end
+                    
+                    if not tab.IsButton then
+                        local pad = Instance.new("UIPadding")
+                        pad.PaddingLeft = UDim.new(0, 8)
+                        pad.Parent = togButton
+                    end
+
+                    togButton.Font = Enum.Font.GothamBold
+                    togButton.TextSize = 11
+                    togButton.Parent = itemHolder
+                    
+                    local corner = Instance.new("UICorner")
+                    corner.CornerRadius = UDim.new(0, 8)
+                    corner.Parent = togButton
+                    
+                    local currentState = tab.State
+                    if not tab.IsButton then
+                        togButton.MouseButton1Click:Connect(function()
+                            currentState = not currentState
+                            togButton.Text = "  " .. tab.Name .. " : " .. (currentState and "ON" or "OFF")
+                            togButton.BackgroundColor3 = currentState and accentColor or Color3.fromRGB(35, 22, 22)
+                            togButton.BackgroundTransparency = currentState and 0.1 or 0.4
+                            togButton.TextColor3 = currentState and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(170, 150, 150)
+                            if tab.Callback then tab.Callback(currentState) end
+                        end)
+                    else
+                        togButton.MouseButton1Click:Connect(function()
+                            if tab.Callback then tab.Callback() end
+                        end)
+                    end
                 end
             end
             
@@ -614,13 +776,13 @@ function Library:Load()
                 mainFrame.Size = previousSize
                 sidebar.Visible = true
                 contentContainer.Visible = true
-                minBtn.Text = "—"
+                minBtn.Text = "-"
             end
         end)
     end
 end
 
-local Window = Library:CreateWindow("kyuzxc mm2 red [modern edition]")
+local Window = Library:CreateWindow("kyuzxc mm2 red [v7.0]")
 
 --// Category 1: Visuals
 local catVisuals = Window:CreateCategory("Visuals")
@@ -662,6 +824,10 @@ catCombat:CreateTab("fov silent aim circle", {enabled = true}, function(tog)
     fovFrame.Visible = tog
     notify("FOV Circle: " .. (tog and "ON" or "OFF"))
 end)
+catCombat:CreateTab("fov radius", {isSlider = true, min = 50, max = 300, value = fovRadius}, function(val)
+    fovRadius = val
+    fovFrame.Size = UDim2.new(0, val * 2, 0, val * 2)
+end)
 catCombat:CreateTab("sheriff silent aim btn", {enabled = false}, function(tog)
     silentAimEnabled = tog
     aimBtn.Visible = tog
@@ -671,7 +837,7 @@ catCombat:CreateTab("shoot murderer now", {isButton = true}, function()
     fireSilentAim()
 end)
 
---// Category 3: Player & Teleport (Fixed Safe Spawn Height)
+--// Category 3: Player & Teleport
 local catPlayer = Window:CreateCategory("Player")
 catPlayer:CreateTab("anti-fling protection", {enabled = true}, function(tog)
     antiFlingEnabled = tog
@@ -717,7 +883,7 @@ catPlayer:CreateTab("teleport to safe spawn", {isButton = true}, function()
     end
 end)
 
---// Category 4: Teleport & Farming
+--// Category 4: Farming
 local catFarm = Window:CreateCategory("Farming")
 catFarm:CreateTab("safe tween coin farm", {enabled = false}, function(tog)
     autoCoinEnabled = tog
@@ -735,36 +901,26 @@ catFarm:CreateTab("auto-rejoin round end", {enabled = false}, function(tog)
     notify("Auto-Rejoin: " .. (tog and "ON" or "OFF"))
 end)
 
---// Category 5: Upgraded Player Teleport Menu
+--// Category 5: Upgraded Dropdown Teleport Menu
 local catTrolls = Window:CreateCategory("Player TP")
-catTrolls:CreateTab("select target player", {isButton = true}, function()
-    -- Quick Cycle through players
-    local playersList = Players:GetPlayers()
-    for i, p in ipairs(playersList) do
-        if p == player then
-            local nextP = playersList[i % #playersList + 1]
-            if nextP ~= player then
-                selectedTpPlayer = nextP
-                notify("Selected Target: " .. nextP.DisplayName)
-                break
-            end
-        end
-    end
+catTrolls:CreateTab("target player", {isDropdown = true}, function(target)
+    selectedTpPlayer = target
+    notify("Target Selected: " .. target.DisplayName)
 end)
 
-catTrolls:CreateTab("teleport to selected player", {isButton = true}, function()
+catTrolls:CreateTab("teleport to target", {isButton = true}, function()
     if selectedTpPlayer and selectedTpPlayer.Character and selectedTpPlayer.Character:FindFirstChild("HumanoidRootPart") then
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             player.Character.HumanoidRootPart.CFrame = selectedTpPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
             notify("Teleported to " .. selectedTpPlayer.DisplayName)
         end
     else
-        notify("No target selected or target is dead/left.")
+        notify("Please select a valid player first!")
     end
 end)
 
 Library:Load()
-notify("Kyuzxc MM2 Brutal v6.0 loaded successfully!")
+notify("Kyuzxc MM2 Brutal v7.0 loaded successfully!")
 
 --// Visuals GUI Container
 local visualsGui = Instance.new("ScreenGui")
