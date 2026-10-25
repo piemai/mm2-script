@@ -1,21 +1,20 @@
---// Kyuzxc MM2 Red Mod Menu (Stable UI Framework & Features)
+--// Kyuzxc MM2 Red Mod Menu (PlayerGui Fixed Edition)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local Camera = workspace.CurrentCamera
 
 local player = Players.LocalPlayer
-local uiParent = (gethui and gethui()) or CoreGui
+local playerGui = player:WaitForChild("PlayerGui")
 
 -- Linisin ang lumang UI kung naka-load na
-if uiParent:FindFirstChild("KyuzxcModMenu") then
-    uiParent.KyuzxcModMenu:Destroy()
+if playerGui:FindFirstChild("KyuzxcModMenu") then
+    playerGui.KyuzxcModMenu:Destroy()
 end
-if uiParent:FindFirstChild("KyuzxcMM2Visuals") then
-    uiParent.KyuzxcMM2Visuals:Destroy()
+if playerGui:FindFirstChild("KyuzxcMM2Visuals") then
+    playerGui.KyuzxcMM2Visuals:Destroy()
 end
 
 --// Notification Helper
@@ -53,7 +52,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
---// Library Framework (Gaya ng working menu template)
+--// Library Framework
 local Library = {
     Windows = {}
 }
@@ -92,7 +91,7 @@ function Library:Load()
     screenGui.Name = "KyuzxcModMenu"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    screenGui.Parent = uiParent
+    screenGui.Parent = playerGui
     
     for _, win in ipairs(self.Windows) do
         local mainFrame = Instance.new("Frame")
@@ -153,8 +152,8 @@ function Library:Load()
         
         closeBtn.MouseButton1Click:Connect(function()
             screenGui:Destroy()
-            if uiParent:FindFirstChild("KyuzxcMM2Visuals") then
-                uiParent.KyuzxcMM2Visuals:Destroy()
+            if playerGui:FindFirstChild("KyuzxcMM2Visuals") then
+                playerGui.KyuzxcMM2Visuals:Destroy()
             end
             notify("Menu closed and unloaded.")
         end)
@@ -452,7 +451,7 @@ visualsGui.Name = "KyuzxcMM2Visuals"
 visualsGui.ResetOnSpawn = false
 visualsGui.IgnoreGuiInset = true
 visualsGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-visualsGui.Parent = uiParent
+visualsGui.Parent = playerGui
 
 local espCache = {}
 
