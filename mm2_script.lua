@@ -1,7 +1,8 @@
---// Kyuzxc MM2 Red Mod Menu (True Auto-Kill, Spawn Teleport, Noclip & ESP)
+--// Kyuzxc MM2 Red Mod Menu (Final Updated Version)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local Camera = workspace.CurrentCamera
@@ -497,21 +498,25 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- True Auto-Kill Murderer Logic (Automatic Shoot/Kill)
+    -- Fixed Auto-Kill Murderer Logic (With prediction & aiming)
     if autoKillEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local hasGun = player.Backpack:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Revolver") or player.Character:FindFirstChild("Gun") or player.Character:FindFirstChild("Revolver")
         if hasGun then
             for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
                     if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
-                        -- I-teleport ang sarili malapit sa Murderer
-                        player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                        local murdererPart = p.Character.HumanoidRootPart
+                        local murdererHead = p.Character.Head
                         
-                        -- Awtomatikong i-trigger ang ShootGun remote para barilin ito nang tuluyan
+                        -- Ilapit ang sarili para sure hit
+                        player.Character.HumanoidRootPart.CFrame = murdererPart.CFrame * CFrame.new(0, 0, 4)
+                        
+                        -- Barilin gamit ang shoot remote at prediction
                         pcall(function()
                             local shootRemote = ReplicatedStorage:FindFirstChild("ShootGun", true) or game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("ShootGun")
                             if shootRemote then
-                                shootRemote:InvokeServer(p.Character.HumanoidRootPart.Position)
+                                local targetPos = murdererHead.Position + (murdererPart.AssemblyLinearVelocity * 0.1)
+                                shootRemote:InvokeServer(targetPos)
                             end
                         end)
                     end
@@ -660,7 +665,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gun Drop ESP
+    -- Gun Drop ESP (Tanging mga nahulog na baril lamang)
     if gunEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj.Name == "GunDrop" and obj:IsA("BasePart") then
