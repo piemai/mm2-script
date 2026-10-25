@@ -1,9 +1,10 @@
---// Kyuzxc MM2 Red Mod Menu (Brutal v3.2: Anti-Fling + Tween Coin Farm + Auto-Grab Gun + Kill Aura)
+--// Kyuzxc MM2 Red Mod Menu (Brutal v4.0: FOV Circle + Player Teleports + Auto-Rejoin + Anti-Cheat Bypass)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
 local StarterGui = game:GetService("StarterGui")
 local Camera = workspace.CurrentCamera
 
@@ -20,6 +21,27 @@ end
 if playerGui:FindFirstChild("KyuzxcSilentAimBtn") then
     playerGui.KyuzxcSilentAimBtn:Destroy()
 end
+if playerGui:FindFirstChild("KyuzxcFOVCircle") then
+    playerGui.KyuzxcFOVCircle:Destroy()
+end
+
+--// Anti-Cheat Hook & Remote Spoof Bypass
+pcall(function()
+    for _, v in ipairs(getconnections(script.Changed)) do
+        v:Disable()
+    end
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local oldNamecall = mt.__namecall
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" or method == "Ban" then
+            return nil
+        end
+        return oldNamecall(self, ...)
+    end)
+    setreadonly(mt, true)
+end)
 
 --// Notification Helper
 local function notify(msg)
@@ -46,48 +68,79 @@ local noclipEnabled = false
 local autoKillEnabled = false
 local killAuraEnabled = false
 local silentAimEnabled = false
+local fovCircleEnabled = true
+local fovRadius = 120
 local killAuraRange = 20
 local autoCoinEnabled = false
 local autoGrabGunEnabled = false
-local antiFlingEnabled = true -- Enabled by default
-local tweenFarmSpeed = 24
+local antiFlingEnabled = true
+local autoRejoinEnabled = false
+local tweenFarmSpeed = 48
 local activeCoinTween = nil
 local isGrabbingGun = false
+local selectedTargetPlayer = nil
 local accentColor = Color3.fromRGB(255, 75, 75)
 
---// Helper: Find Current Murderer
-local function getMurderer()
+--// FOV Circle GUI for Silent Aim
+local fovGui = Instance.new("ScreenGui")
+fovGui.Name = "KyuzxcFOVCircle"
+fovGui.ResetOnSpawn = false
+fovGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+fovGui.Parent = playerGui
+
+local fovFrame = Instance.new("Frame")
+fovFrame.Size = UDim2.new(0, fovRadius * 2, 0, fovRadius * 2)
+fovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+fovFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+fovFrame.BackgroundTransparency = 1
+fovFrame.Visible = fovCircleEnabled
+fovFrame.Parent = fovGui
+
+local fovCorner = Instance.new("UICorner")
+fovCorner.CornerRadius = UDim.new(1, 0)
+fovCorner.Parent = fovFrame
+
+local fovStroke = Instance.new("UIStroke")
+fovStroke.Color = Color3.fromRGB(255, 100, 100)
+fovStroke.Thickness = 1.5
+fovStroke.Transparency = 0.4
+fovStroke.Parent = fovFrame
+
+--// Helper: Find Current Murderer within FOV
+local function getMurdererInFOV()
+    local bestTarget = nil
+    local shortestDist = fovRadius
+
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character then
             if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
-                return p
-            end
-        end
-    end
-    return nil
-end
-
---// Robust Coin Finder
-local function getNearestCoin(hrp)
-    local nearestCoin = nil
-    local shortestDist = math.huge
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        local name = obj.Name
-        if (name == "Coin_Server" or name == "Coin" or name == "CoinVisual" or name == "Gold") and obj:IsA("BasePart") and obj.Parent then
-            if obj.Transparency < 1 then
-                local dist = (hrp.Position - obj.Position).Magnitude
-                if dist < shortestDist and dist < 400 then
-                    shortestDist = dist
-                    nearestCoin = obj
+                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScreen then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if dist < shortestDist then
+                            shortestDist = dist
+                            bestTarget = p
+                        end
+                    end
                 end
             end
         end
     end
-    return nearestCoin, shortestDist
+    -- Fallback to any murderer if none in FOV circle
+    if not bestTarget then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and (p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife")) then
+                return p
+            end
+        end
+    end
+    return bestTarget
 end
 
---// Helper: Fire Sheriff Gun at Murderer (Silent Aim Execution)
+--// Helper: Fire Sheriff Gun at Murderer (FOV Silent Aim)
 local function fireSilentAim()
     local myChar = player.Character
     if not myChar then return end
@@ -106,7 +159,7 @@ local function fireSilentAim()
         return
     end
 
-    local murderer = getMurderer()
+    local murderer = getMurdererInFOV()
     if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
         local mHRP = murderer.Character.HumanoidRootPart
         local mHead = murderer.Character:FindFirstChild("Head") or mHRP
@@ -123,9 +176,9 @@ local function fireSilentAim()
                 end
             end
         end)
-        notify("Silent Aim fired at: " .. murderer.DisplayName)
+        notify("Silent Aim hit: " .. murderer.DisplayName)
     else
-        notify("Walang nahanap na Murderer!")
+        notify("Walang nahanap na Murderer sa FOV!")
     end
 end
 
@@ -162,6 +215,26 @@ aimBtn.MouseButton1Click:Connect(function()
     fireSilentAim()
 end)
 
+--// Robust Coin Finder
+local function getNearestCoin(hrp)
+    local nearestCoin = nil
+    local shortestDist = math.huge
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        local name = obj.Name
+        if (name == "Coin_Server" or name == "Coin" or name == "CoinVisual" or name == "Gold") and obj:IsA("BasePart") and obj.Parent then
+            if obj.Transparency < 1 then
+                local dist = (hrp.Position - obj.Position).Magnitude
+                if dist < shortestDist and dist < 400 then
+                    shortestDist = dist
+                    nearestCoin = obj
+                end
+            end
+        end
+    end
+    return nearestCoin, shortestDist
+end
+
 --// Infinite Jump Logic
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and player.Character then
@@ -172,9 +245,9 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
---// Dedicated Tween Coin Farming Thread
+--// Turbo Tween Coin Farming Thread
 task.spawn(function()
-    while task.wait(0.05) do
+    while task.wait(0.03) do
         if autoCoinEnabled and not isGrabbingGun then
             local myChar = player.Character
             local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
@@ -187,9 +260,9 @@ task.spawn(function()
                         end
                     end
 
-                    local duration = math.clamp(dist / tweenFarmSpeed, 0.05, 3.0)
+                    local duration = math.clamp(dist / tweenFarmSpeed, 0.03, 1.8)
                     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-                    local goal = { CFrame = CFrame.new(targetCoin.Position + Vector3.new(0, 0.5, 0)) }
+                    local goal = { CFrame = CFrame.new(targetCoin.Position + Vector3.new(0, 0.4, 0)) }
 
                     activeCoinTween = TweenService:Create(myHRP, tweenInfo, goal)
                     activeCoinTween:Play()
@@ -206,7 +279,7 @@ task.spawn(function()
                         task.wait()
                     end
                 else
-                    task.wait(0.5)
+                    task.wait(0.3)
                 end
             end
         else
@@ -215,6 +288,16 @@ task.spawn(function()
                 activeCoinTween = nil
             end
         end
+    end
+end)
+
+--// Auto Rejoin Handler on Game Over / Round End
+Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(child)
+    if autoRejoinEnabled and (child.Name == "GameOver" or child.Name == "EndScreen" or child.Name == "Scoreboard") then
+        task.wait(2)
+        pcall(function()
+            TeleportService:Teleport(game.PlaceId, player)
+        end)
     end
 end)
 
@@ -325,6 +408,9 @@ function Library:Load()
             end
             if playerGui:FindFirstChild("KyuzxcSilentAimBtn") then
                 playerGui.KyuzxcSilentAimBtn:Destroy()
+            end
+            if playerGui:FindFirstChild("KyuzxcFOVCircle") then
+                playerGui.KyuzxcFOVCircle:Destroy()
             end
             notify("Menu closed and unloaded.")
         end)
@@ -505,7 +591,7 @@ function Library:Load()
     end
 end
 
-local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v3.2]")
+local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v4.0]")
 
 --// Category 1: Visuals
 local catVisuals = Window:CreateCategory("Visuals")
@@ -542,6 +628,11 @@ catCombat:CreateTab("knife kill aura", {enabled = false}, function(tog)
     killAuraEnabled = tog
     notify("Knife Kill Aura: " .. (tog and "ON" or "OFF"))
 end)
+catCombat:CreateTab("fov silent aim circle", {enabled = true}, function(tog)
+    fovCircleEnabled = tog
+    fovFrame.Visible = tog
+    notify("FOV Circle: " .. (tog and "ON" or "OFF"))
+end)
 catCombat:CreateTab("sheriff silent aim btn", {enabled = false}, function(tog)
     silentAimEnabled = tog
     aimBtn.Visible = tog
@@ -550,12 +641,8 @@ end)
 catCombat:CreateTab("shoot murderer now", {isButton = true}, function()
     fireSilentAim()
 end)
-catCombat:CreateTab("auto-kill murderer", {enabled = false}, function(tog)
-    autoKillEnabled = tog
-    notify("Auto-Kill: " .. (tog and "ON" or "OFF"))
-end)
 
---// Category 3: Player / Movement
+--// Category 3: Player & Teleport
 local catPlayer = Window:CreateCategory("Player")
 catPlayer:CreateTab("anti-fling protection", {enabled = true}, function(tog)
     antiFlingEnabled = tog
@@ -582,62 +669,51 @@ catPlayer:CreateTab("noclip", {enabled = false}, function(tog)
     end
     notify("Noclip: " .. (tog and "ON" or "OFF"))
 end)
+catPlayer:CreateTab("teleport to spawn", {isButton = true}, function()
+    local myChar = player.Character
+    if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+        myChar.HumanoidRootPart.CFrame = CFrame.new(0, 10, 0)
+        notify("Naka-teleport sa spawn!")
+    end
+end)
 
---// Category 4: Teleport & Auto-Farm
-local catTeleport = Window:CreateCategory("Teleport")
-catTeleport:CreateTab("tween coin farm", {enabled = false}, function(tog)
+--// Category 4: Teleport & Farming
+local catFarm = Window:CreateCategory("Farming")
+catFarm:CreateTab("turbo tween coin farm", {enabled = false}, function(tog)
     autoCoinEnabled = tog
     if not tog and activeCoinTween then
         activeCoinTween:Cancel()
     end
-    notify("Tween Coin Farm: " .. (tog and "ON" or "OFF"))
+    notify("Turbo Tween Coin Farm: " .. (tog and "ON" or "OFF"))
 end)
-
-catTeleport:CreateTab("auto-grab dropped gun", {enabled = false}, function(tog)
+catFarm:CreateTab("auto-grab dropped gun", {enabled = false}, function(tog)
     autoGrabGunEnabled = tog
     notify("Auto-Grab Gun: " .. (tog and "ON" or "OFF"))
 end)
-
-catTeleport:CreateTab("teleport to gun", {isButton = true}, function()
-    local found = false
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name == "GunDrop" and obj:IsA("BasePart") then
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
-                notify("Naka-teleport sa nahulog na baril!")
-                found = true
-                break
-            end
-        end
-    end
-    if not found then
-        notify("Walang nakitang nahulog na baril sa sahig.")
-    end
+catFarm:CreateTab("auto-rejoin round end", {enabled = false}, function(tog)
+    autoRejoinEnabled = tog
+    notify("Auto-Rejoin: " .. (tog and "ON" or "OFF"))
 end)
 
-catTeleport:CreateTab("teleport to spawn", {isButton = true}, function()
-    local myChar = player.Character
-    if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-        local foundSpawn = false
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if (obj.Name == "SpawnLocation" or obj.Name == "Spawn") and obj:IsA("BasePart") then
-                myChar.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
-                notify("Naka-teleport sa spawn point!")
-                foundSpawn = true
-                break
+--// Category 5: Player Teleport Menu
+local catTrolls = Window:CreateCategory("Teleport Menu")
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= player then
+        catTrolls:CreateTab("teleport to: " .. p.DisplayName, {isButton = true}, function()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+                notify("Naka-teleport kay " .. p.DisplayName)
+            else
+                notify("Hindi ma-teleport (patay o wala sa laro).")
             end
-        end
-        if not foundSpawn then
-            myChar.HumanoidRootPart.CFrame = CFrame.new(0, 10, 0)
-            notify("Naka-teleport sa default spawn!")
-        end
+        end)
     end
-end)
+end
 
 Library:Load()
-notify("Kyuzxc MM2 Brutal v3.2 loaded!")
+notify("Kyuzxc MM2 Brutal v4.0 loaded!")
 
---// Visuals GUI Container para sa Boxes at Tracers
+--// Visuals GUI Container
 local visualsGui = Instance.new("ScreenGui")
 visualsGui.Name = "KyuzxcMM2Visuals"
 visualsGui.ResetOnSpawn = false
@@ -678,15 +754,13 @@ RunService.RenderStepped:Connect(function()
     local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
     local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
 
-    -- Anti-Fling Protection (Nullifies external velocity/spin flings)
+    -- Anti-Fling
     if antiFlingEnabled and myHRP then
         myHRP.AssemblyAngularVelocity = Vector3.zero
-        for _, otherPlayer in ipairs(Players:GetPlayers()) do
-            if otherPlayer ~= player and otherPlayer.Character then
-                local otherRoot = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if otherRoot then
-                    otherRoot.RotVelocity = Vector3.zero
-                end
+        for _, op in ipairs(Players:GetPlayers()) do
+            if op ~= player and op.Character then
+                local r = op.Character:FindFirstChild("HumanoidRootPart")
+                if r then r.RotVelocity = Vector3.zero end
             end
         end
     end
@@ -696,16 +770,14 @@ RunService.RenderStepped:Connect(function()
         myHum.WalkSpeed = customSpeed
     end
 
-    -- Stable Noclip Execution
+    -- Noclip
     if noclipEnabled and myChar then
         for _, part in ipairs(myChar:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
+            if part:IsA("BasePart") then part.CanCollide = false end
         end
     end
 
-    -- Auto-Grab Dropped Gun
+    -- Auto-Grab Gun
     if autoGrabGunEnabled and myChar and myHRP and myHum and myHum.Health > 0 and not isGrabbingGun then
         local hasKnife = myChar:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
         local hasGun = myChar:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun") or myChar:FindFirstChild("Revolver") or player.Backpack:FindFirstChild("Revolver")
@@ -724,9 +796,7 @@ RunService.RenderStepped:Connect(function()
                                 firetouchinterest(myHRP, obj, 1)
                             end
                             task.wait(0.18)
-                            if myHRP and myHRP.Parent then
-                                myHRP.CFrame = savedCFrame
-                            end
+                            if myHRP and myHRP.Parent then myHRP.CFrame = savedCFrame end
                         end)
                         notify("Auto-Grabbed Dropped Gun!")
                         task.wait(0.5)
@@ -742,9 +812,7 @@ RunService.RenderStepped:Connect(function()
     if killAuraEnabled and myChar and myHRP then
         local knife = myChar:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
         if knife then
-            if knife.Parent == player.Backpack and myHum then
-                myHum:EquipTool(knife)
-            end
+            if knife.Parent == player.Backpack and myHum then myHum:EquipTool(knife) end
             local handle = knife:FindFirstChild("Handle")
             if handle then
                 for _, p in ipairs(Players:GetPlayers()) do
@@ -752,8 +820,7 @@ RunService.RenderStepped:Connect(function()
                         local targetHRP = p.Character.HumanoidRootPart
                         local targetHum = p.Character:FindFirstChildOfClass("Humanoid")
                         if targetHum and targetHum.Health > 0 then
-                            local dist = (myHRP.Position - targetHRP.Position).Magnitude
-                            if dist <= killAuraRange then
+                            if (myHRP.Position - targetHRP.Position).Magnitude <= killAuraRange then
                                 pcall(function()
                                     knife:Activate()
                                     if firetouchinterest then
@@ -768,16 +835,6 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
             end
-        end
-    end
-
-    -- Universal Auto-Kill Murderer Logic
-    if autoKillEnabled and myHRP then
-        local murderer = getMurderer()
-        if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-            local murdererPart = murderer.Character.HumanoidRootPart
-            myHRP.CFrame = murdererPart.CFrame * CFrame.new(0, 0, 3)
-            fireSilentAim()
         end
     end
 
@@ -959,7 +1016,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Strict Coin ESP Handler
+    -- Coin ESP
     if coinEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
             local name = obj.Name
@@ -969,6 +1026,7 @@ RunService.RenderStepped:Connect(function()
                 billboard.Size = UDim2.new(0, 50, 0, 20)
                 billboard.AlwaysOnTop = true
                 
+                local txt = Instance.new("TextLabel, billboard")
                 local txt = Instance.new("TextLabel", billboard)
                 txt.Size = UDim2.new(1, 0, 1, 0)
                 txt.BackgroundTransparency = 1
@@ -980,9 +1038,7 @@ RunService.RenderStepped:Connect(function()
     else
         for _, obj in ipairs(workspace:GetDescendants()) do
             local tag = obj:FindFirstChild("CoinTag")
-            if tag then
-                tag:Destroy()
-            end
+            if tag then tag:Destroy() end
         end
     end
 end)
