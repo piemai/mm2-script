@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Fixed Teleport, Gun ESP Cleanup & Speed)
+--// Kyuzxc MM2 Red Mod Menu (With Auto-Kill, Safe Teleport, Noclip & Fixed ESP)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -38,6 +38,8 @@ local coinEspEnabled = false
 local speedEnabled = false
 local customSpeed = 22
 local infJumpEnabled = false
+local noclipEnabled = false
+local autoKillEnabled = false
 local accentColor = Color3.fromRGB(255, 75, 75) -- Red Theme
 
 --// Infinite Jump Logic
@@ -256,7 +258,7 @@ function Library:Load()
                 else
                     togButton.BackgroundColor3 = tab.State and accentColor or Color3.fromRGB(45, 25, 25)
                     togButton.TextColor3 = tab.State and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 160, 160)
-                    togButton.Text = "  " .. tab.Name .. " : " .. (tab.State and "ON" or "OFF")
+                    togButton.Text = "  " .. tab.Name .." : " .. (tab.State and "ON" or "OFF")
                     togButton.TextXAlignment = Enum.TextXAlignment.Left
                 end
                 
@@ -371,13 +373,40 @@ catPlayer:CreateTab("infinite jump", {enabled = false}, function(tog)
     infJumpEnabled = tog
     notify("Infinite Jump: " .. (tog and "ON" or "OFF"))
 end)
+catPlayer:CreateTab("noclip", {enabled = false}, function(tog)
+    noclipEnabled = tog
+    if not tog and player.Character then
+        for _, part in ipairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+    end
+    notify("Noclip: " .. (tog and "ON" or "OFF"))
+end)
+catPlayer:CreateTab("auto-kill murderer", {enabled = false}, function(tog)
+    autoKillEnabled = tog
+    notify("Auto-Kill: " .. (tog and "ON" or "OFF"))
+end)
 
---// Category 3: Teleport
+--// Category 3: Teleport & Safe
 local catTeleport = Window:CreateCategory("Teleport")
+catTeleport:CreateTab("teleport to safest place", {isButton = true}, function()
+    local myChar = player.Character
+    if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+        local highestPos = Vector3.new(0, 100, 0)
+        for _, part in ipairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and part.Position.Y > highestPos.Y and not part.Parent:FindFirstChildOfClass("Humanoid") then
+                highestPos = part.Position + Vector3.new(0, 5, 0)
+            end
+        end
+        myChar.HumanoidRootPart.CFrame = CFrame.new(highestPos)
+        notify("Naka-teleport sa ligtas na lugar!")
+    end
+end)
+
 catTeleport:CreateTab("teleport to gun", {isButton = true}, function()
     local found = false
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if (obj.Name == "GunDrop" or obj.Name == "Gun") and obj:IsA("BasePart") then
+        if obj.Name == "GunDrop" and obj:IsA("BasePart") then
             if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 player.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
                 notify("Naka-teleport sa nahulog na baril!")
@@ -448,10 +477,33 @@ end
 
 --// Main Loop Functions
 RunService.RenderStepped:Connect(function()
-    -- Speed Hack Fix
+    -- Speed Hack
     if speedEnabled and player.Character then
         local hum = player.Character:FindFirstChildOfClass("Humanoid")
         if hum then hum.WalkSpeed = customSpeed end
+    end
+
+    -- Noclip
+    if noclipEnabled and player.Character then
+        for _, part in ipairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+
+    -- Auto-Kill Murderer Logic
+    if autoKillEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hasGun = player.Backpack:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Revolver") or player.Character:FindFirstChild("Gun") or player.Character:FindFirstChild("Revolver")
+        if hasGun then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+                        player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                    end
+                end
+            end
+        end
     end
 
     -- Role ESP
@@ -594,10 +646,10 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Fixed Gun ESP (Awtomatikong nawawala kapag nakuha na o nawala sa sahig)
+    -- Gun Drop ESP (Tanging mga nahulog na baril lamang)
     if gunEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if (obj.Name == "GunDrop" or obj.Name == "Gun") and obj:IsA("BasePart") then
+            if obj.Name == "GunDrop" and obj:IsA("BasePart") then
                 local billboard = obj:FindFirstChild("GunTag")
                 if not billboard then
                     billboard = Instance.new("BillboardGui", obj)
@@ -611,21 +663,21 @@ RunService.RenderStepped:Connect(function()
                     txt.BackgroundTransparency = 0.5
                     txt.BackgroundColor3 = Color3.fromRGB(30, 20, 20)
                     txt.TextColor3 = Color3.fromRGB(255, 255, 0)
-                    txt.Text = "[ GUN ]"
+                    txt.Text = "[ DROPPED GUN ]"
                     txt.TextScaled = true
                     txt.Font = Enum.Font.GothamBold
                     Instance.new("UICorner", txt).CornerRadius = UDim.new(0, 4)
                 end
             end
         end
-    -- Linisin ang mga tag ng gun kapag wala na sa workspace
+    end
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:FindFirstChild("GunTag") and obj.Name ~= "GunDrop" and obj.Name ~= "Gun" then
+        if obj:FindFirstChild("GunTag") and obj.Name ~= "GunDrop" then
             obj.GunTag:Destroy()
         end
     end
-    end
 
+    -- Coin ESP
     if coinEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj.Name == "CoinContainer" or obj.Name == "Coin" or obj.Name == "Coin_Server" then
