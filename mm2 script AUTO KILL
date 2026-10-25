@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Universal Auto-Kill & Stable Noclip)
+--// Kyuzxc MM2 Red Mod Menu (Stable UI Framework & Features)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -11,8 +11,8 @@ local player = Players.LocalPlayer
 local uiParent = (gethui and gethui()) or CoreGui
 
 -- Linisin ang lumang UI kung naka-load na
-if uiParent:FindFirstChild("KyuzxcMM2Menu") then
-    uiParent.KyuzxcMM2Menu:Destroy()
+if uiParent:FindFirstChild("KyuzxcModMenu") then
+    uiParent.KyuzxcModMenu:Destroy()
 end
 if uiParent:FindFirstChild("KyuzxcMM2Visuals") then
     uiParent.KyuzxcMM2Visuals:Destroy()
@@ -53,7 +53,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
---// Library Framework
+--// Library Framework (Gaya ng working menu template)
 local Library = {
     Windows = {}
 }
@@ -89,7 +89,7 @@ end
 
 function Library:Load()
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KyuzxcMM2Menu"
+    screenGui.Name = "KyuzxcModMenu"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     screenGui.Parent = uiParent
@@ -156,7 +156,7 @@ function Library:Load()
             if uiParent:FindFirstChild("KyuzxcMM2Visuals") then
                 uiParent.KyuzxcMM2Visuals:Destroy()
             end
-            notify("MM2 Menu closed.")
+            notify("Menu closed and unloaded.")
         end)
         
         --// Minimize Button
@@ -489,7 +489,7 @@ RunService.RenderStepped:Connect(function()
         if hum then hum.WalkSpeed = customSpeed end
     end
 
-    -- Stable & Constant Noclip Execution
+    -- Stable Noclip Execution
     if noclipEnabled and player.Character then
         for _, part in ipairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -498,7 +498,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Universal Auto-Kill Murderer Logic (Any role bypass & instant shoot)
+    -- Universal Auto-Kill Murderer Logic
     if autoKillEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
@@ -506,10 +506,8 @@ RunService.RenderStepped:Connect(function()
                     local murdererPart = p.Character.HumanoidRootPart
                     local murdererHead = p.Character.Head
                     
-                    -- Ilapit ang sarili sa Murderer
                     player.Character.HumanoidRootPart.CFrame = murdererPart.CFrame * CFrame.new(0, 0, 3)
                     
-                    -- Awtomatikong pagbaril anuman ang role state
                     pcall(function()
                         local shootRemote = ReplicatedStorage:FindFirstChild("ShootGun", true) or game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("ShootGun")
                         if shootRemote then
