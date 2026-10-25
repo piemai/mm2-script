@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Final Updated Version)
+--// Kyuzxc MM2 Red Mod Menu (Universal Auto-Kill & Stable Noclip)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -383,7 +383,7 @@ catPlayer:CreateTab("noclip", {enabled = false}, function(tog)
     end
     notify("Noclip: " .. (tog and "ON" or "OFF"))
 end)
-catPlayer:CreateTab("auto-kill murderer", {enabled = false}, function(tog)
+catPlayer:CreateTab("auto-kill (any role)", {enabled = false}, function(tog)
     autoKillEnabled = tog
     notify("Auto-Kill: " .. (tog and "ON" or "OFF"))
 end)
@@ -489,7 +489,7 @@ RunService.RenderStepped:Connect(function()
         if hum then hum.WalkSpeed = customSpeed end
     end
 
-    -- Noclip
+    -- Stable & Constant Noclip Execution
     if noclipEnabled and player.Character then
         for _, part in ipairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -498,28 +498,25 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Fixed Auto-Kill Murderer Logic (With prediction & aiming)
+    -- Universal Auto-Kill Murderer Logic (Any role bypass & instant shoot)
     if autoKillEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local hasGun = player.Backpack:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Revolver") or player.Character:FindFirstChild("Gun") or player.Character:FindFirstChild("Revolver")
-        if hasGun then
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
-                    if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
-                        local murdererPart = p.Character.HumanoidRootPart
-                        local murdererHead = p.Character.Head
-                        
-                        -- Ilapit ang sarili para sure hit
-                        player.Character.HumanoidRootPart.CFrame = murdererPart.CFrame * CFrame.new(0, 0, 4)
-                        
-                        -- Barilin gamit ang shoot remote at prediction
-                        pcall(function()
-                            local shootRemote = ReplicatedStorage:FindFirstChild("ShootGun", true) or game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("ShootGun")
-                            if shootRemote then
-                                local targetPos = murdererHead.Position + (murdererPart.AssemblyLinearVelocity * 0.1)
-                                shootRemote:InvokeServer(targetPos)
-                            end
-                        end)
-                    end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
+                if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+                    local murdererPart = p.Character.HumanoidRootPart
+                    local murdererHead = p.Character.Head
+                    
+                    -- Ilapit ang sarili sa Murderer
+                    player.Character.HumanoidRootPart.CFrame = murdererPart.CFrame * CFrame.new(0, 0, 3)
+                    
+                    -- Awtomatikong pagbaril anuman ang role state
+                    pcall(function()
+                        local shootRemote = ReplicatedStorage:FindFirstChild("ShootGun", true) or game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("ShootGun")
+                        if shootRemote then
+                            local targetPos = murdererHead.Position + (murdererPart.AssemblyLinearVelocity * 0.1)
+                            shootRemote:InvokeServer(targetPos)
+                        end
+                    end)
                 end
             end
         end
@@ -665,7 +662,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gun Drop ESP (Tanging mga nahulog na baril lamang)
+    -- Gun Drop ESP
     if gunEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj.Name == "GunDrop" and obj:IsA("BasePart") then
