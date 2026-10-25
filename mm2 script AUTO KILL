@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (MM2 Script v1 + AntiCheat Bypass)
+--// Kyuzxc MM2 Red Mod Menu (MM2 Script + AntiCheat Bypass)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -47,9 +47,7 @@ local speedEnabled = false
 local customSpeed = 24
 local infJumpEnabled = false
 local noclipEnabled = false
-local autoKillEnabled = false
 local killAuraEnabled = false
-local silentAimEnabled = false
 local fovCircleEnabled = true
 local fovRadius = 120
 local killAuraRange = 20
@@ -60,6 +58,7 @@ local autoRejoinEnabled = false
 local tweenFarmSpeed = 32
 local activeCoinTween = nil
 local isGrabbingGun = false
+local selectedTpPlayer = nil
 local accentColor = Color3.fromRGB(255, 60, 60)
 
 --// FOV Circle GUI for Silent Aim
@@ -162,7 +161,7 @@ local function fireSilentAim()
     end
 end
 
---// Floating Silent Aim Button (Modern Glass Style)
+--// Floating Silent Aim Button
 local silentAimGui = Instance.new("ScreenGui")
 silentAimGui.Name = "KyuzxcSilentAimBtn"
 silentAimGui.ResetOnSpawn = false
@@ -277,7 +276,7 @@ Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(child)
     end
 end)
 
---// Modern Acrylic Library Framework
+--// Resizable Modern Acrylic Library Framework
 local Library = {
     Windows = {}
 }
@@ -319,10 +318,10 @@ function Library:Load()
     screenGui.Parent = playerGui
     
     for _, win in ipairs(self.Windows) do
-        -- Main Glass Frame
+        -- Main Glass Frame (Resizable)
         local mainFrame = Instance.new("Frame")
-        mainFrame.Size = UDim2.new(0, 480, 0, 340)
-        mainFrame.Position = UDim2.new(0.5, -240, 0.3, -170)
+        mainFrame.Size = UDim2.new(0, 520, 0, 360)
+        mainFrame.Position = UDim2.new(0.5, -260, 0.3, -180)
         mainFrame.BackgroundColor3 = Color3.fromRGB(16, 10, 10)
         mainFrame.BackgroundTransparency = 0.05
         mainFrame.BorderSizePixel = 0
@@ -340,6 +339,42 @@ function Library:Load()
         stroke.Transparency = 0.2
         stroke.Parent = mainFrame
 
+        --// Resize Handle (Bottom-Right Corner)
+        local resizeBtn = Instance.new("TextButton")
+        resizeBtn.Size = UDim2.new(0, 20, 0, 20)
+        resizeBtn.Position = UDim2.new(1, -20, 1, -20)
+        resizeBtn.BackgroundTransparency = 1
+        resizeBtn.Text = "◢"
+        resizeBtn.TextColor3 = Color3.fromRGB(150, 100, 100)
+        resizeBtn.TextSize = 12
+        resizeBtn.ZIndex = 10
+        resizeBtn.Parent = mainFrame
+
+        local resizing = false
+        local dragStartSize, startMousePos
+        resizeBtn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                resizing = true
+                dragStartSize = mainFrame.AbsoluteSize
+                startMousePos = input.Position
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local delta = input.Position - startMousePos
+                local newX = math.clamp(dragStartSize.X + delta.X, 420, 800)
+                local newY = math.clamp(dragStartSize.Y + delta.Y, 280, 600)
+                mainFrame.Size = UDim2.new(0, newX, 0, newY)
+            end
+        end)
+
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                resizing = false
+            end
+        end)
+
         --// Modern Header
         local header = Instance.new("Frame")
         header.Size = UDim2.new(1, 0, 0, 46)
@@ -351,7 +386,6 @@ function Library:Load()
         headerCorner.CornerRadius = UDim.new(0, 14)
         headerCorner.Parent = header
 
-        -- Fix bottom corners of header so they stay square inside rounded mainFrame
         local headerCover = Instance.new("Frame")
         headerCover.Size = UDim2.new(1, 0, 0, 10)
         headerCover.Position = UDim2.new(0, 0, 1, -10)
@@ -416,9 +450,9 @@ function Library:Load()
         minCorner.CornerRadius = UDim.new(0, 8)
         minCorner.Parent = minBtn
 
-        --// Sidebar Navigation (Modern Tab Holder)
+        --// Sidebar Navigation
         local sidebar = Instance.new("ScrollingFrame")
-        sidebar.Size = UDim2.new(0, 130, 1, -60)
+        sidebar.Size = UDim2.new(0, 140, 1, -60)
         sidebar.Position = UDim2.new(0, 10, 0, 54)
         sidebar.BackgroundColor3 = Color3.fromRGB(22, 12, 12)
         sidebar.BackgroundTransparency = 0.5
@@ -446,8 +480,8 @@ function Library:Load()
         
         --// Content Container
         local contentContainer = Instance.new("ScrollingFrame")
-        contentContainer.Size = UDim2.new(1, -154, 1, -60)
-        contentContainer.Position = UDim2.new(0, 146, 0, 54)
+        contentContainer.Size = UDim2.new(1, -164, 1, -60)
+        contentContainer.Position = UDim2.new(0, 156, 0, 54)
         contentContainer.BackgroundTransparency = 1
         contentContainer.BorderSizePixel = 0
         contentContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -637,7 +671,7 @@ catCombat:CreateTab("shoot murderer now", {isButton = true}, function()
     fireSilentAim()
 end)
 
---// Category 3: Player & Teleport
+--// Category 3: Player & Teleport (Fixed Safe Spawn Height)
 local catPlayer = Window:CreateCategory("Player")
 catPlayer:CreateTab("anti-fling protection", {enabled = true}, function(tog)
     antiFlingEnabled = tog
@@ -664,11 +698,22 @@ catPlayer:CreateTab("noclip", {enabled = false}, function(tog)
     end
     notify("Noclip: " .. (tog and "ON" or "OFF"))
 end)
-catPlayer:CreateTab("teleport to spawn", {isButton = true}, function()
+catPlayer:CreateTab("teleport to safe spawn", {isButton = true}, function()
     local myChar = player.Character
     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-        myChar.HumanoidRootPart.CFrame = CFrame.new(0, 10, 0)
-        notify("Teleported to spawn!")
+        local foundSpawn = false
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if (obj.Name == "SpawnLocation" or obj.Name == "Spawn") and obj:IsA("BasePart") then
+                myChar.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
+                notify("Teleported to spawn safely!")
+                foundSpawn = true
+                break
+            end
+        end
+        if not foundSpawn then
+            myChar.HumanoidRootPart.CFrame = CFrame.new(0, 15, 0)
+            notify("Teleported to default safe spawn!")
+        end
     end
 end)
 
@@ -690,23 +735,36 @@ catFarm:CreateTab("auto-rejoin round end", {enabled = false}, function(tog)
     notify("Auto-Rejoin: " .. (tog and "ON" or "OFF"))
 end)
 
---// Category 5: Player Teleport Menu
-local catTrolls = Window:CreateCategory("Teleport Menu")
-for _, p in ipairs(Players:GetPlayers()) do
-    if p ~= player then
-        catTrolls:CreateTab("teleport to: " .. p.DisplayName, {isButton = true}, function()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-                notify("Teleported to " .. p.DisplayName)
-            else
-                notify("Cannot teleport (player dead or out of game).")
+--// Category 5: Upgraded Player Teleport Menu
+local catTrolls = Window:CreateCategory("Player TP")
+catTrolls:CreateTab("select target player", {isButton = true}, function()
+    -- Quick Cycle through players
+    local playersList = Players:GetPlayers()
+    for i, p in ipairs(playersList) do
+        if p == player then
+            local nextP = playersList[i % #playersList + 1]
+            if nextP ~= player then
+                selectedTpPlayer = nextP
+                notify("Selected Target: " .. nextP.DisplayName)
+                break
             end
-        end)
+        end
     end
-end
+end)
+
+catTrolls:CreateTab("teleport to selected player", {isButton = true}, function()
+    if selectedTpPlayer and selectedTpPlayer.Character and selectedTpPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = selectedTpPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+            notify("Teleported to " .. selectedTpPlayer.DisplayName)
+        end
+    else
+        notify("No target selected or target is dead/left.")
+    end
+end)
 
 Library:Load()
-notify("Kyuzxc MM2 Modern Edition loaded successfully!")
+notify("Kyuzxc MM2 Brutal v6.0 loaded successfully!")
 
 --// Visuals GUI Container
 local visualsGui = Instance.new("ScreenGui")
