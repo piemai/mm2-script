@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Brutal v4.3: Complete Build)
+--// Kyuzxc MM2 Red Mod Menu (MM2 Script v1 + AntiCheat Bypass)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -11,7 +11,7 @@ local Camera = workspace.CurrentCamera
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Linisin ang lumang UI kung naka-load na
+-- Clean up old UI if loaded
 if playerGui:FindFirstChild("KyuzxcModMenu") then
     playerGui.KyuzxcModMenu:Destroy()
 end
@@ -60,7 +60,7 @@ local autoRejoinEnabled = false
 local tweenFarmSpeed = 32
 local activeCoinTween = nil
 local isGrabbingGun = false
-local accentColor = Color3.fromRGB(255, 75, 75)
+local accentColor = Color3.fromRGB(255, 60, 60)
 
 --// FOV Circle GUI for Silent Aim
 local fovGui = Instance.new("ScreenGui")
@@ -135,7 +135,7 @@ local function fireSilentAim()
     end
 
     if not gun then
-        notify("Wala kang hawak na baril (Sheriff Gun)!")
+        notify("You are not holding a Sheriff Gun!")
         return
     end
 
@@ -158,11 +158,11 @@ local function fireSilentAim()
         end)
         notify("Silent Aim hit: " .. murderer.DisplayName)
     else
-        notify("Walang nahanap na Murderer sa FOV!")
+        notify("No Murderer found in FOV!")
     end
 end
 
---// Floating Silent Aim Button
+--// Floating Silent Aim Button (Modern Glass Style)
 local silentAimGui = Instance.new("ScreenGui")
 silentAimGui.Name = "KyuzxcSilentAimBtn"
 silentAimGui.ResetOnSpawn = false
@@ -170,25 +170,27 @@ silentAimGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 silentAimGui.Parent = playerGui
 
 local aimBtn = Instance.new("TextButton")
-aimBtn.Size = UDim2.new(0, 110, 0, 44)
-aimBtn.Position = UDim2.new(0.82, -55, 0.55, 0)
-aimBtn.BackgroundColor3 = Color3.fromRGB(35, 18, 18)
-aimBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+aimBtn.Size = UDim2.new(0, 120, 0, 42)
+aimBtn.Position = UDim2.new(0.82, -60, 0.55, 0)
+aimBtn.BackgroundColor3 = Color3.fromRGB(22, 14, 14)
+aimBtn.BackgroundTransparency = 0.2
+aimBtn.TextColor3 = Color3.fromRGB(255, 120, 120)
 aimBtn.Font = Enum.Font.GothamBold
 aimBtn.TextSize = 12
-aimBtn.Text = "SHOOT MURD"
+aimBtn.Text = "🎯 SHOOT MURD"
 aimBtn.Visible = false
 aimBtn.Active = true
 aimBtn.Draggable = true
 aimBtn.Parent = silentAimGui
 
 local aimCorner = Instance.new("UICorner")
-aimCorner.CornerRadius = UDim.new(0, 10)
+aimCorner.CornerRadius = UDim.new(0, 8)
 aimCorner.Parent = aimBtn
 
 local aimStroke = Instance.new("UIStroke")
 aimStroke.Color = accentColor
-aimStroke.Thickness = 2
+aimStroke.Thickness = 1.5
+aimStroke.Transparency = 0.2
 aimStroke.Parent = aimBtn
 
 aimBtn.MouseButton1Click:Connect(function()
@@ -275,7 +277,7 @@ Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(child)
     end
 end)
 
---// Library Framework
+--// Modern Acrylic Library Framework
 local Library = {
     Windows = {}
 }
@@ -317,60 +319,70 @@ function Library:Load()
     screenGui.Parent = playerGui
     
     for _, win in ipairs(self.Windows) do
+        -- Main Glass Frame
         local mainFrame = Instance.new("Frame")
-        mainFrame.Size = UDim2.new(0, 440, 0, 320)
-        mainFrame.Position = UDim2.new(0.5, -220, 0.3, -160)
-        mainFrame.BackgroundColor3 = Color3.fromRGB(20, 14, 14)
+        mainFrame.Size = UDim2.new(0, 480, 0, 340)
+        mainFrame.Position = UDim2.new(0.5, -240, 0.3, -170)
+        mainFrame.BackgroundColor3 = Color3.fromRGB(16, 10, 10)
+        mainFrame.BackgroundTransparency = 0.05
         mainFrame.BorderSizePixel = 0
         mainFrame.Active = true
         mainFrame.Draggable = true
         mainFrame.Parent = screenGui
         
         local mainCorner = Instance.new("UICorner")
-        mainCorner.CornerRadius = UDim.new(0, 12)
+        mainCorner.CornerRadius = UDim.new(0, 14)
         mainCorner.Parent = mainFrame
         
         local stroke = Instance.new("UIStroke")
         stroke.Color = accentColor
-        stroke.Thickness = 1.5
-        stroke.Transparency = 0.3
+        stroke.Thickness = 1.8
+        stroke.Transparency = 0.2
         stroke.Parent = mainFrame
 
-        --// Header
+        --// Modern Header
         local header = Instance.new("Frame")
-        header.Size = UDim2.new(1, 0, 0, 42)
-        header.BackgroundColor3 = Color3.fromRGB(35, 20, 20)
+        header.Size = UDim2.new(1, 0, 0, 46)
+        header.BackgroundColor3 = Color3.fromRGB(26, 14, 14)
         header.BorderSizePixel = 0
         header.Parent = mainFrame
 
         local headerCorner = Instance.new("UICorner")
-        headerCorner.CornerRadius = UDim.new(0, 12)
+        headerCorner.CornerRadius = UDim.new(0, 14)
         headerCorner.Parent = header
 
+        -- Fix bottom corners of header so they stay square inside rounded mainFrame
+        local headerCover = Instance.new("Frame")
+        headerCover.Size = UDim2.new(1, 0, 0, 10)
+        headerCover.Position = UDim2.new(0, 0, 1, -10)
+        headerCover.BackgroundColor3 = Color3.fromRGB(26, 14, 14)
+        headerCover.BorderSizePixel = 0
+        headerCover.Parent = header
+
         local titleBar = Instance.new("TextLabel")
-        titleBar.Size = UDim2.new(1, -70, 1, 0)
+        titleBar.Size = UDim2.new(1, -80, 1, 0)
         titleBar.BackgroundTransparency = 1
-        titleBar.TextColor3 = Color3.fromRGB(255, 170, 170)
+        titleBar.TextColor3 = Color3.fromRGB(255, 190, 190)
         titleBar.Font = Enum.Font.GothamBold
         titleBar.TextSize = 13
         titleBar.TextXAlignment = Enum.TextXAlignment.Left
-        titleBar.Position = UDim2.new(0, 14, 0, 0)
-        titleBar.Text = "  " .. string.upper(win.Title)
+        titleBar.Position = UDim2.new(0, 16, 0, 0)
+        titleBar.Text = "  ⚡ " .. string.upper(win.Title)
         titleBar.Parent = header
         
         --// Close Button
         local closeBtn = Instance.new("TextButton")
-        closeBtn.Size = UDim2.new(0, 26, 0, 26)
-        closeBtn.Position = UDim2.new(1, -32, 0, 8)
-        closeBtn.BackgroundColor3 = Color3.fromRGB(210, 75, 75)
+        closeBtn.Size = UDim2.new(0, 28, 0, 28)
+        closeBtn.Position = UDim2.new(1, -36, 0, 9)
+        closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
         closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        closeBtn.Text = "×"
+        closeBtn.Text = "✕"
         closeBtn.Font = Enum.Font.GothamBold
-        closeBtn.TextSize = 14
+        closeBtn.TextSize = 12
         closeBtn.Parent = header
         
         local closeCorner = Instance.new("UICorner")
-        closeCorner.CornerRadius = UDim.new(0, 6)
+        closeCorner.CornerRadius = UDim.new(0, 8)
         closeCorner.Parent = closeBtn
         
         closeBtn.MouseButton1Click:Connect(function()
@@ -391,24 +403,25 @@ function Library:Load()
         
         --// Minimize Button
         local minBtn = Instance.new("TextButton")
-        minBtn.Size = UDim2.new(0, 26, 0, 26)
-        minBtn.Position = UDim2.new(1, -64, 0, 8)
-        minBtn.BackgroundColor3 = Color3.fromRGB(50, 30, 30)
+        minBtn.Size = UDim2.new(0, 28, 0, 28)
+        minBtn.Position = UDim2.new(1, -70, 0, 9)
+        minBtn.BackgroundColor3 = Color3.fromRGB(45, 25, 25)
         minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        minBtn.Text = "-"
+        minBtn.Text = "—"
         minBtn.Font = Enum.Font.GothamBold
-        minBtn.TextSize = 14
+        minBtn.TextSize = 12
         minBtn.Parent = header
         
         local minCorner = Instance.new("UICorner")
-        minCorner.CornerRadius = UDim.new(0, 6)
+        minCorner.CornerRadius = UDim.new(0, 8)
         minCorner.Parent = minBtn
 
-        --// Sidebar Navigation
+        --// Sidebar Navigation (Modern Tab Holder)
         local sidebar = Instance.new("ScrollingFrame")
-        sidebar.Size = UDim2.new(0, 120, 1, -54)
-        sidebar.Position = UDim2.new(0, 8, 0, 48)
-        sidebar.BackgroundColor3 = Color3.fromRGB(30, 18, 18)
+        sidebar.Size = UDim2.new(0, 130, 1, -60)
+        sidebar.Position = UDim2.new(0, 10, 0, 54)
+        sidebar.BackgroundColor3 = Color3.fromRGB(22, 12, 12)
+        sidebar.BackgroundTransparency = 0.5
         sidebar.BorderSizePixel = 0
         sidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
         sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -417,7 +430,7 @@ function Library:Load()
         sidebar.Parent = mainFrame
 
         local sideCorner = Instance.new("UICorner")
-        sideCorner.CornerRadius = UDim.new(0, 8)
+        sideCorner.CornerRadius = UDim.new(0, 10)
         sideCorner.Parent = sidebar
 
         local sideLayout = Instance.new("UIListLayout")
@@ -426,15 +439,15 @@ function Library:Load()
         sideLayout.Parent = sidebar
 
         local sidePadding = Instance.new("UIPadding")
-        sidePadding.PaddingTop = UDim.new(0, 6)
+        sidePadding.PaddingTop = UDim.new(0, 8)
         sidePadding.PaddingLeft = UDim.new(0, 6)
         sidePadding.PaddingRight = UDim.new(0, 6)
         sidePadding.Parent = sidebar
         
         --// Content Container
         local contentContainer = Instance.new("ScrollingFrame")
-        contentContainer.Size = UDim2.new(1, -140, 1, -54)
-        contentContainer.Position = UDim2.new(0, 134, 0, 48)
+        contentContainer.Size = UDim2.new(1, -154, 1, -60)
+        contentContainer.Position = UDim2.new(0, 146, 0, 54)
         contentContainer.BackgroundTransparency = 1
         contentContainer.BorderSizePixel = 0
         contentContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -445,7 +458,7 @@ function Library:Load()
         
         local contentLayout = Instance.new("UIListLayout")
         contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        contentLayout.Padding = UDim.new(0, 6)
+        contentLayout.Padding = UDim.new(0, 8)
         contentLayout.Parent = contentContainer
 
         local categoryFrames = {}
@@ -453,16 +466,18 @@ function Library:Load()
         
         for _, cat in ipairs(win.Categories) do
             local cBtn = Instance.new("TextButton")
-            cBtn.Size = UDim2.new(1, 0, 0, 32)
-            cBtn.BackgroundColor3 = Color3.fromRGB(50, 30, 30)
+            cBtn.Size = UDim2.new(1, 0, 0, 36)
+            cBtn.BackgroundColor3 = Color3.fromRGB(35, 20, 20)
+            cBtn.BackgroundTransparency = 0.3
             cBtn.TextColor3 = Color3.fromRGB(200, 160, 160)
-            cBtn.Text = cat.Name
+            cBtn.Text = "  " .. cat.Name
             cBtn.Font = Enum.Font.GothamBold
             cBtn.TextSize = 11
+            cBtn.TextXAlignment = Enum.TextXAlignment.Left
             cBtn.Parent = sidebar
             
             local cCorner = Instance.new("UICorner")
-            cCorner.CornerRadius = UDim.new(0, 6)
+            cCorner.CornerRadius = UDim.new(0, 8)
             cCorner.Parent = cBtn
             
             local itemHolder = Instance.new("Frame")
@@ -474,28 +489,30 @@ function Library:Load()
             
             local itemLayout = Instance.new("UIListLayout")
             itemLayout.SortOrder = Enum.SortOrder.LayoutOrder
-            itemLayout.Padding = UDim.new(0, 6)
+            itemLayout.Padding = UDim.new(0, 8)
             itemLayout.Parent = itemHolder
             
             for idx, tab in ipairs(cat.Tabs) do
                 local togButton = Instance.new("TextButton")
                 togButton.LayoutOrder = idx * 2
-                togButton.Size = UDim2.new(1, 0, 0, 34)
+                togButton.Size = UDim2.new(1, 0, 0, 38)
                 
                 if tab.IsButton then
-                    togButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+                    togButton.BackgroundColor3 = Color3.fromRGB(190, 50, 50)
+                    togButton.BackgroundTransparency = 0.1
                     togButton.TextColor3 = Color3.fromRGB(255, 255, 255)
                     togButton.Text = tab.Name
                 else
-                    togButton.BackgroundColor3 = tab.State and accentColor or Color3.fromRGB(45, 25, 25)
-                    togButton.TextColor3 = tab.State and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 160, 160)
+                    togButton.BackgroundColor3 = tab.State and accentColor or Color3.fromRGB(35, 22, 22)
+                    togButton.BackgroundTransparency = tab.State and 0.1 or 0.4
+                    togButton.TextColor3 = tab.State and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(170, 150, 150)
                     togButton.Text = "  " .. tab.Name .. " : " .. (tab.State and "ON" or "OFF")
                     togButton.TextXAlignment = Enum.TextXAlignment.Left
                 end
                 
                 if not tab.IsButton then
                     local pad = Instance.new("UIPadding")
-                    pad.PaddingLeft = UDim.new(0, 6)
+                    pad.PaddingLeft = UDim.new(0, 8)
                     pad.Parent = togButton
                 end
 
@@ -504,7 +521,7 @@ function Library:Load()
                 togButton.Parent = itemHolder
                 
                 local corner = Instance.new("UICorner")
-                corner.CornerRadius = UDim.new(0, 6)
+                corner.CornerRadius = UDim.new(0, 8)
                 corner.Parent = togButton
                 
                 local currentState = tab.State
@@ -512,8 +529,9 @@ function Library:Load()
                     togButton.MouseButton1Click:Connect(function()
                         currentState = not currentState
                         togButton.Text = "  " .. tab.Name .. " : " .. (currentState and "ON" or "OFF")
-                        togButton.BackgroundColor3 = currentState and accentColor or Color3.fromRGB(45, 25, 25)
-                        togButton.TextColor3 = currentState and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 160, 160)
+                        togButton.BackgroundColor3 = currentState and accentColor or Color3.fromRGB(35, 22, 22)
+                        togButton.BackgroundTransparency = currentState and 0.1 or 0.4
+                        togButton.TextColor3 = currentState and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(170, 150, 150)
                         if tab.Callback then tab.Callback(currentState) end
                     end)
                 else
@@ -529,11 +547,13 @@ function Library:Load()
             cBtn.MouseButton1Click:Connect(function()
                 for _, holder in ipairs(categoryFrames) do holder.Visible = false end
                 for _, btn in ipairs(categoryButtons) do 
-                    btn.BackgroundColor3 = Color3.fromRGB(50, 30, 30)
+                    btn.BackgroundColor3 = Color3.fromRGB(35, 20, 20)
+                    btn.BackgroundTransparency = 0.3
                     btn.TextColor3 = Color3.fromRGB(200, 160, 160)
                 end
                 itemHolder.Visible = true
                 cBtn.BackgroundColor3 = accentColor
+                cBtn.BackgroundTransparency = 0.1
                 cBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             end)
         end
@@ -541,6 +561,7 @@ function Library:Load()
         if categoryFrames[1] then
             categoryFrames[1].Visible = true
             categoryButtons[1].BackgroundColor3 = accentColor
+            categoryButtons[1].BackgroundTransparency = 0.1
             categoryButtons[1].TextColor3 = Color3.fromRGB(255, 255, 255)
         end
         
@@ -553,19 +574,19 @@ function Library:Load()
                 previousSize = mainFrame.Size
                 sidebar.Visible = false
                 contentContainer.Visible = false
-                mainFrame.Size = UDim2.new(0, previousSize.X.Offset, 0, 42)
+                mainFrame.Size = UDim2.new(0, previousSize.X.Offset, 0, 46)
                 minBtn.Text = "+"
             else
                 mainFrame.Size = previousSize
                 sidebar.Visible = true
                 contentContainer.Visible = true
-                minBtn.Text = "-"
+                minBtn.Text = "—"
             end
         end)
     end
 end
 
-local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v4.3]")
+local Window = Library:CreateWindow("kyuzxc mm2 red [modern edition]")
 
 --// Category 1: Visuals
 local catVisuals = Window:CreateCategory("Visuals")
@@ -647,7 +668,7 @@ catPlayer:CreateTab("teleport to spawn", {isButton = true}, function()
     local myChar = player.Character
     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
         myChar.HumanoidRootPart.CFrame = CFrame.new(0, 10, 0)
-        notify("Naka-teleport sa spawn!")
+        notify("Teleported to spawn!")
     end
 end)
 
@@ -676,16 +697,16 @@ for _, p in ipairs(Players:GetPlayers()) do
         catTrolls:CreateTab("teleport to: " .. p.DisplayName, {isButton = true}, function()
             if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-                notify("Naka-teleport kay " .. p.DisplayName)
+                notify("Teleported to " .. p.DisplayName)
             else
-                notify("Hindi ma-teleport (patay o wala sa laro).")
+                notify("Cannot teleport (player dead or out of game).")
             end
         end)
     end
 end
 
 Library:Load()
-notify("Kyuzxc MM2 Brutal v4.3 loaded!")
+notify("Kyuzxc MM2 Modern Edition loaded successfully!")
 
 --// Visuals GUI Container
 local visualsGui = Instance.new("ScreenGui")
