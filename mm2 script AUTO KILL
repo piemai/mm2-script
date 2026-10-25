@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Brutal v4.2: Stable Crash-Free Build)
+--// Kyuzxc MM2 Red Mod Menu (Brutal v4.3: Complete Build)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -57,7 +57,7 @@ local autoCoinEnabled = false
 local autoGrabGunEnabled = false
 local antiFlingEnabled = true
 local autoRejoinEnabled = false
-local tweenFarmSpeed = 48
+local tweenFarmSpeed = 32
 local activeCoinTween = nil
 local isGrabbingGun = false
 local accentColor = Color3.fromRGB(255, 75, 75)
@@ -205,7 +205,7 @@ local function getNearestCoin(hrp)
         if (name == "Coin_Server" or name == "Coin" or name == "CoinVisual" or name == "Gold") and obj:IsA("BasePart") and obj.Parent then
             if obj.Transparency < 1 then
                 local dist = (hrp.Position - obj.Position).Magnitude
-                if dist < shortestDist and dist < 400 then
+                if dist < shortestDist and dist < 350 then
                     shortestDist = dist
                     nearestCoin = obj
                 end
@@ -225,24 +225,18 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
---// Turbo Tween Coin Farming Thread
+--// Safe Anti-Kick Tween Coin Farming Thread
 task.spawn(function()
-    while task.wait(0.03) do
+    while task.wait(0.05) do
         if autoCoinEnabled and not isGrabbingGun then
             local myChar = player.Character
             local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
             if myHRP then
                 local targetCoin, dist = getNearestCoin(myHRP)
                 if targetCoin then
-                    for _, part in ipairs(myChar:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
-                    end
-
-                    local duration = math.clamp(dist / tweenFarmSpeed, 0.03, 1.8)
+                    local duration = math.clamp(dist / tweenFarmSpeed, 0.1, 2.5)
                     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-                    local goal = { CFrame = CFrame.new(targetCoin.Position + Vector3.new(0, 0.4, 0)) }
+                    local goal = { CFrame = CFrame.new(targetCoin.Position + Vector3.new(0, 1, 0)) }
 
                     activeCoinTween = TweenService:Create(myHRP, tweenInfo, goal)
                     activeCoinTween:Play()
@@ -259,7 +253,7 @@ task.spawn(function()
                         task.wait()
                     end
                 else
-                    task.wait(0.3)
+                    task.wait(0.5)
                 end
             end
         else
@@ -571,7 +565,7 @@ function Library:Load()
     end
 end
 
-local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v4.2]")
+local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v4.3]")
 
 --// Category 1: Visuals
 local catVisuals = Window:CreateCategory("Visuals")
@@ -659,12 +653,12 @@ end)
 
 --// Category 4: Teleport & Farming
 local catFarm = Window:CreateCategory("Farming")
-catFarm:CreateTab("turbo tween coin farm", {enabled = false}, function(tog)
+catFarm:CreateTab("safe tween coin farm", {enabled = false}, function(tog)
     autoCoinEnabled = tog
     if not tog and activeCoinTween then
         activeCoinTween:Cancel()
     end
-    notify("Turbo Tween Coin Farm: " .. (tog and "ON" or "OFF"))
+    notify("Safe Tween Coin Farm: " .. (tog and "ON" or "OFF"))
 end)
 catFarm:CreateTab("auto-grab dropped gun", {enabled = false}, function(tog)
     autoGrabGunEnabled = tog
@@ -691,7 +685,7 @@ for _, p in ipairs(Players:GetPlayers()) do
 end
 
 Library:Load()
-notify("Kyuzxc MM2 Brutal v4.2 loaded!")
+notify("Kyuzxc MM2 Brutal v4.3 loaded!")
 
 --// Visuals GUI Container
 local visualsGui = Instance.new("ScreenGui")
