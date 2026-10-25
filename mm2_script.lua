@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Safe Teleport to Spawn, Auto-Kill, Noclip & Fixed ESP)
+--// Kyuzxc MM2 Red Mod Menu (True Auto-Kill, Spawn Teleport, Noclip & ESP)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -402,7 +402,6 @@ catTeleport:CreateTab("teleport to spawn", {isButton = true}, function()
             end
         end
         if not foundSpawn then
-            -- Fallback kung walang mahanap na part, balik sa default coordinate
             myChar.HumanoidRootPart.CFrame = CFrame.new(0, 10, 0)
             notify("Naka-teleport sa default spawn!")
         end
@@ -498,14 +497,23 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Auto-Kill Murderer Logic
+    -- True Auto-Kill Murderer Logic (Automatic Shoot/Kill)
     if autoKillEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local hasGun = player.Backpack:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Revolver") or player.Character:FindFirstChild("Gun") or player.Character:FindFirstChild("Revolver")
         if hasGun then
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                     if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+                        -- I-teleport ang sarili malapit sa Murderer
                         player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                        
+                        -- Awtomatikong i-trigger ang ShootGun remote para barilin ito nang tuluyan
+                        pcall(function()
+                            local shootRemote = ReplicatedStorage:FindFirstChild("ShootGun", true) or game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("ShootGun")
+                            if shootRemote then
+                                shootRemote:InvokeServer(p.Character.HumanoidRootPart.Position)
+                            end
+                        end)
                     end
                 end
             end
@@ -652,7 +660,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gun Drop ESP (Tanging mga nahulog na baril lamang)
+    -- Gun Drop ESP
     if gunEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj.Name == "GunDrop" and obj:IsA("BasePart") then
