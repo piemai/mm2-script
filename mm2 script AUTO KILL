@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Brutal v7.0: Upgraded Teleport Dropdown + FOV Slider + Fixed Close Button)
+--// KYUZXC MM2 [V1.0]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -27,10 +27,10 @@ end
 
 --// Notification Helper
 local function notify(msg)
-    print("[Kyuzxc MM2] " .. msg)
+    print("[KYUZXC MM2 V1.0] " .. msg)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
-            Title = "Kyuzxc MM2",
+            Title = "KYUZXC MM2 [V1.0]",
             Text = msg,
             Duration = 3
         })
@@ -40,6 +40,7 @@ end
 --// Feature States
 local roleEspEnabled = true
 local boxEspEnabled = true
+local skeletonEspEnabled = true
 local tracerEspEnabled = true
 local gunEspEnabled = true
 local coinEspEnabled = false
@@ -324,7 +325,6 @@ function Library:Load()
     screenGui.Parent = playerGui
     
     for _, win in ipairs(self.Windows) do
-        -- Main Glass Frame (Resizable)
         local mainFrame = Instance.new("Frame")
         mainFrame.Size = UDim2.new(0, 540, 0, 380)
         mainFrame.Position = UDim2.new(0.5, -270, 0.3, -190)
@@ -345,7 +345,7 @@ function Library:Load()
         stroke.Transparency = 0.2
         stroke.Parent = mainFrame
 
-        --// Resize Handle (Bottom-Right Corner)
+        --// Resize Handle
         local resizeBtn = Instance.new("TextButton")
         resizeBtn.Size = UDim2.new(0, 20, 0, 20)
         resizeBtn.Position = UDim2.new(1, -20, 1, -20)
@@ -410,7 +410,7 @@ function Library:Load()
         titleBar.Text = "  ⚡ " .. string.upper(win.Title)
         titleBar.Parent = header
         
-        --// Close Button (Fixed Text-based X without missing glyphs)
+        --// Close Button
         local closeBtn = Instance.new("TextButton")
         closeBtn.Size = UDim2.new(0, 28, 0, 28)
         closeBtn.Position = UDim2.new(1, -36, 0, 9)
@@ -534,7 +534,6 @@ function Library:Load()
             
             for idx, tab in ipairs(cat.Tabs) do
                 if tab.IsDropdown then
-                    -- Dropdown Implementation
                     local dropFrame = Instance.new("Frame")
                     dropFrame.LayoutOrder = idx * 2
                     dropFrame.Size = UDim2.new(1, 0, 0, 38)
@@ -584,7 +583,6 @@ function Library:Load()
                         end
                     end)
 
-                    -- Refresh dropdown list dynamically
                     task.spawn(function()
                         while task.wait(1) do
                             if dropList.Parent then
@@ -619,7 +617,6 @@ function Library:Load()
                     end)
 
                 elseif tab.IsSlider then
-                    -- Slider Implementation
                     local sliderFrame = Instance.new("Frame")
                     sliderFrame.LayoutOrder = idx * 2
                     sliderFrame.Size = UDim2.new(1, 0, 0, 52)
@@ -687,7 +684,6 @@ function Library:Load()
                     end)
 
                 else
-                    -- Standard Button or Toggle
                     local togButton = Instance.new("TextButton")
                     togButton.LayoutOrder = idx * 2
                     togButton.Size = UDim2.new(1, 0, 0, 38)
@@ -782,7 +778,7 @@ function Library:Load()
     end
 end
 
-local Window = Library:CreateWindow("kyuzxc mm2 red [v7.0]")
+local Window = Library:CreateWindow("KYUZXC MM2 [V1.0]")
 
 --// Category 1: Visuals
 local catVisuals = Window:CreateCategory("Visuals")
@@ -793,6 +789,10 @@ end)
 catVisuals:CreateTab("box esp", {enabled = true}, function(tog) 
     boxEspEnabled = tog 
     notify("Box ESP: " .. (tog and "ON" or "OFF"))
+end)
+catVisuals:CreateTab("skeleton esp", {enabled = true}, function(tog) 
+    skeletonEspEnabled = tog 
+    notify("Skeleton ESP: " .. (tog and "ON" or "OFF"))
 end)
 catVisuals:CreateTab("tracer esp", {enabled = true}, function(tog) 
     tracerEspEnabled = tog 
@@ -920,7 +920,7 @@ catTrolls:CreateTab("teleport to target", {isButton = true}, function()
 end)
 
 Library:Load()
-notify("Kyuzxc MM2 Brutal v7.0 loaded successfully!")
+notify("KYUZXC MM2 V1.0 loaded successfully!")
 
 --// Visuals GUI Container
 local visualsGui = Instance.new("ScreenGui")
@@ -940,6 +940,9 @@ local function removeVisuals(p)
             if espCache[p].BoxLeft then espCache[p].BoxLeft:Destroy() end
             if espCache[p].BoxRight then espCache[p].BoxRight:Destroy() end
             if espCache[p].TracerLine then espCache[p].TracerLine:Destroy() end
+            if espCache[p].SkeletonParts then
+                for _, line in pairs(espCache[p].SkeletonParts) do line:Destroy() end
+            end
         end)
         espCache[p] = nil
     end
@@ -957,7 +960,27 @@ local function createLine()
     return line
 end
 
+local function createSkeletonLine()
+    local line = Instance.new("Frame")
+    line.AnchorPoint = Vector2.new(0.5, 0.5)
+    line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    line.BorderSizePixel = 0
+    line.Visible = false
+    line.Parent = visualsGui
+    return line
+end
+
 --// Main Loop Functions
+RunService.Stepped:Connect(function()
+    if noclipEnabled and player.Character then
+        for _, part in ipairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
 RunService.RenderStepped:Connect(function()
     local myChar = player.Character
     local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
@@ -977,13 +1000,6 @@ RunService.RenderStepped:Connect(function()
     -- Speed Hack
     if speedEnabled and myHum then
         myHum.WalkSpeed = customSpeed
-    end
-
-    -- Noclip
-    if noclipEnabled and myChar then
-        for _, part in ipairs(myChar:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
     end
 
     -- Auto-Grab Gun
@@ -1103,7 +1119,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Box & Tracer ESP
+    -- Box, Tracer & Skeleton ESP
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player then
             local char = p.Character
@@ -1120,7 +1136,19 @@ RunService.RenderStepped:Connect(function()
                         BoxBottom = createLine(),
                         BoxLeft = createLine(),
                         BoxRight = createLine(),
-                        TracerLine = createLine()
+                        TracerLine = createLine(),
+                        SkeletonParts = {
+                            Head_Neck = createSkeletonLine(),
+                            Neck_Torso = createSkeletonLine(),
+                            LeftUpperArm = createSkeletonLine(),
+                            RightUpperArm = createSkeletonLine(),
+                            LeftLowerArm = createSkeletonLine(),
+                            RightLowerArm = createSkeletonLine(),
+                            LeftUpperLeg = createSkeletonLine(),
+                            RightUpperLeg = createSkeletonLine(),
+                            LeftLowerLeg = createSkeletonLine(),
+                            RightLowerLeg = createSkeletonLine()
+                        }
                     }
                 end
 
@@ -1170,6 +1198,55 @@ RunService.RenderStepped:Connect(function()
                         cache.BoxRight.Visible = false
                     end
 
+                    -- Skeleton ESP Rendering
+                    if skeletonEspEnabled and char:FindFirstChild("UpperTorso") and char:FindFirstChild("LowerTorso") then
+                        local parts = cache.SkeletonParts
+                        local function drawBone(lineObj, partA, partB)
+                            if partA and partB then
+                                local posA, onA = Camera:WorldToViewportPoint(partA.Position)
+                                local posB, onB = Camera:WorldToViewportPoint(partB.Position)
+                                if onA or onB then
+                                    local p1 = Vector2.new(posA.X, posA.Y)
+                                    local p2 = Vector2.new(posB.X, posB.Y)
+                                    local dist = (p1 - p2).Magnitude
+                                    lineObj.Size = UDim2.new(0, dist, 0, 1.5)
+                                    lineObj.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
+                                    lineObj.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
+                                    lineObj.BackgroundColor3 = activeColor
+                                    lineObj.Visible = true
+                                else
+                                    lineObj.Visible = false
+                                end
+                            else
+                                lineObj.Visible = false
+                            end
+                        end
+
+                        local upperTorso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+                        local lowerTorso = char:FindFirstChild("LowerTorso") or upperTorso
+                        local leftUpperArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm")
+                        local rightUpperArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm")
+                        local leftLowerArm = char:FindFirstChild("LeftLowerArm")
+                        local rightLowerArm = char:FindFirstChild("RightLowerArm")
+                        local leftUpperLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg")
+                        local rightUpperLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
+                        local leftLowerLeg = char:FindFirstChild("LeftLowerLeg")
+                        local rightLowerLeg = char:FindFirstChild("RightLowerLeg")
+
+                        drawBone(parts.Head_Neck, head, upperTorso)
+                        drawBone(parts.Neck_Torso, upperTorso, lowerTorso)
+                        drawBone(parts.LeftUpperArm, upperTorso, leftUpperArm)
+                        drawBone(parts.RightUpperArm, upperTorso, rightUpperArm)
+                        drawBone(parts.LeftLowerArm, leftUpperArm, leftLowerArm)
+                        drawBone(parts.RightLowerArm, rightUpperArm, rightLowerArm)
+                        drawBone(parts.LeftUpperLeg, lowerTorso, leftUpperLeg)
+                        drawBone(parts.RightUpperLeg, lowerTorso, rightUpperLeg)
+                        drawBone(parts.LeftLowerLeg, leftUpperLeg, leftLowerLeg)
+                        drawBone(parts.RightLowerLeg, rightUpperLeg, rightLowerLeg)
+                    else
+                        for _, line in pairs(cache.SkeletonParts) do line.Visible = false end
+                    end
+
                     if tracerEspEnabled then
                         cache.TracerLine.Visible = true
                         cache.TracerLine.BackgroundColor3 = activeColor
@@ -1189,6 +1266,7 @@ RunService.RenderStepped:Connect(function()
                     cache.BoxLeft.Visible = false
                     cache.BoxRight.Visible = false
                     cache.TracerLine.Visible = false
+                    for _, line in pairs(cache.SkeletonParts) do line.Visible = false end
                 end
             end
         end
