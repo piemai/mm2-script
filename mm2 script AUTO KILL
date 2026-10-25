@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (PlayerGui Fixed Edition)
+--// Kyuzxc MM2 Red Mod Menu (PlayerGui Fixed Edition + Coin Fix)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -40,6 +40,7 @@ local customSpeed = 22
 local infJumpEnabled = false
 local noclipEnabled = false
 local autoKillEnabled = false
+local autoCoinEnabled = false -- New state para sa tuloy-tuloy na coin teleport
 local accentColor = Color3.fromRGB(255, 75, 75) -- Red Theme
 
 --// Infinite Jump Logic
@@ -425,21 +426,10 @@ catTeleport:CreateTab("teleport to gun", {isButton = true}, function()
     end
 end)
 
-catTeleport:CreateTab("teleport to coin", {isButton = true}, function()
-    local found = false
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if (obj.Name == "Coin_Server" or obj.Name == "Coin") and obj:IsA("BasePart") then
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 2, 0)
-                notify("Naka-teleport sa coin!")
-                found = true
-                break
-            end
-        end
-    end
-    if not found then
-        notify("Walang nakitang coin sa paligid.")
-    end
+-- Ginawa nating Toggle ang Auto Coin Teleport para tuloy-tuloy siyang lumipat sa mga coin
+catTeleport:CreateTab("auto collect coins", {enabled = false}, function(tog)
+    autoCoinEnabled = tog
+    notify("Auto Collect Coins: " .. (tog and "ON" or "OFF"))
 end)
 
 Library:Load()
@@ -493,6 +483,17 @@ RunService.RenderStepped:Connect(function()
         for _, part in ipairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
+            end
+        end
+    end
+
+    -- Auto-Farm Coins Logic (Tuloy-tuloy na teleport habang naka-ON)
+    if autoCoinEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if (obj.Name == "Coin_Server" or obj.Name == "Coin") and obj:IsA("BasePart") then
+                player.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 1, 0)
+                task.wait(0.1) -- Delay para hindi ma-kick sa anti-cheat
+                break
             end
         end
     end
@@ -690,7 +691,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Coin ESP
+    -- Coin ESP Fix (Magpapakita lang kung ON, at mawawala agad kung OFF)
     if coinEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj.Name == "CoinContainer" or obj.Name == "Coin" or obj.Name == "Coin_Server" then
@@ -709,6 +710,14 @@ RunService.RenderStepped:Connect(function()
                         txt.TextScaled = true
                     end
                 end
+            end
+        end
+    else
+        -- Tanggalin lahat ng CoinTags kapag naka-OFF ang Coin ESP
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            local tag = obj:FindFirstChild("CoinTag")
+            if tag then
+                tag:Destroy()
             end
         end
     end
