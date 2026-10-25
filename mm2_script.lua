@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (With Full Player ESP, Minimize & Features)
+--// Kyuzxc MM2 Red Mod Menu (Fixed Teleport, Gun ESP Cleanup & Speed)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -362,7 +362,8 @@ local catPlayer = Window:CreateCategory("Player")
 catPlayer:CreateTab("speed hack", {enabled = false}, function(tog)
     speedEnabled = tog
     if not tog and player.Character then
-        player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
+        local hum = player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 16 end
     end
     notify("Speed Hack: " .. (tog and "ON" or "OFF"))
 end)
@@ -376,7 +377,7 @@ local catTeleport = Window:CreateCategory("Teleport")
 catTeleport:CreateTab("teleport to gun", {isButton = true}, function()
     local found = false
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name == "GunDrop" and obj:IsA("BasePart") then
+        if (obj.Name == "GunDrop" or obj.Name == "Gun") and obj:IsA("BasePart") then
             if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 player.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 3, 0)
                 notify("Naka-teleport sa nahulog na baril!")
@@ -386,7 +387,24 @@ catTeleport:CreateTab("teleport to gun", {isButton = true}, function()
         end
     end
     if not found then
-        notify("Walang nakitang nahulog na baril.")
+        notify("Walang nakitang nahulog na baril sa sahig.")
+    end
+end)
+
+catTeleport:CreateTab("teleport to coin", {isButton = true}, function()
+    local found = false
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if (obj.Name == "Coin_Server" or obj.Name == "Coin") and obj:IsA("BasePart") then
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 2, 0)
+                notify("Naka-teleport sa coin!")
+                found = true
+                break
+            end
+        end
+    end
+    if not found then
+        notify("Walang nakitang coin sa paligid.")
     end
 end)
 
@@ -430,6 +448,7 @@ end
 
 --// Main Loop Functions
 RunService.RenderStepped:Connect(function()
+    -- Speed Hack Fix
     if speedEnabled and player.Character then
         local hum = player.Character:FindFirstChildOfClass("Humanoid")
         if hum then hum.WalkSpeed = customSpeed end
@@ -508,7 +527,6 @@ RunService.RenderStepped:Connect(function()
                 local cache = espCache[p]
                 local hrpPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
 
-                -- Determine color base on role
                 local activeColor = Color3.fromRGB(0, 255, 100)
                 if p.Backpack:FindFirstChild("Knife") or char:FindFirstChild("Knife") then
                     activeColor = Color3.fromRGB(255, 50, 50)
@@ -517,7 +535,6 @@ RunService.RenderStepped:Connect(function()
                 end
 
                 if onScreen then
-                    -- Box ESP
                     if boxEspEnabled then
                         local vHead = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
                         local vLegs = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
@@ -553,7 +570,6 @@ RunService.RenderStepped:Connect(function()
                         cache.BoxRight.Visible = false
                     end
 
-                    -- Tracer ESP
                     if tracerEspEnabled then
                         cache.TracerLine.Visible = true
                         cache.TracerLine.BackgroundColor3 = activeColor
@@ -578,9 +594,10 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
+    -- Fixed Gun ESP (Awtomatikong nawawala kapag nakuha na o nawala sa sahig)
     if gunEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj.Name == "GunDrop" and obj:IsA("BasePart") then
+            if (obj.Name == "GunDrop" or obj.Name == "Gun") and obj:IsA("BasePart") then
                 local billboard = obj:FindFirstChild("GunTag")
                 if not billboard then
                     billboard = Instance.new("BillboardGui", obj)
@@ -601,11 +618,17 @@ RunService.RenderStepped:Connect(function()
                 end
             end
         end
+    -- Linisin ang mga tag ng gun kapag wala na sa workspace
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:FindFirstChild("GunTag") and obj.Name ~= "GunDrop" and obj.Name ~= "Gun" then
+            obj.GunTag:Destroy()
+        end
+    end
     end
 
     if coinEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj.Name == "CoinContainer" or obj.Name == "Coin" then
+            if obj.Name == "CoinContainer" or obj.Name == "Coin" or obj.Name == "Coin_Server" then
                 for _, coin in ipairs(obj:GetDescendants()) do
                     if coin:IsA("BasePart") and not coin:FindFirstChild("CoinTag") then
                         local billboard = Instance.new("BillboardGui", coin)
