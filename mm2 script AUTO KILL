@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Brutal v4.0: FOV Circle + Player Teleports + Auto-Rejoin + Anti-Cheat Bypass)
+--// Kyuzxc MM2 Red Mod Menu (Brutal v4.2: Stable Crash-Free Build)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -24,24 +24,6 @@ end
 if playerGui:FindFirstChild("KyuzxcFOVCircle") then
     playerGui.KyuzxcFOVCircle:Destroy()
 end
-
---// Anti-Cheat Hook & Remote Spoof Bypass
-pcall(function()
-    for _, v in ipairs(getconnections(script.Changed)) do
-        v:Disable()
-    end
-    local mt = getrawmetatable(game)
-    setreadonly(mt, false)
-    local oldNamecall = mt.__namecall
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if method == "Kick" or method == "Ban" then
-            return nil
-        end
-        return oldNamecall(self, ...)
-    end)
-    setreadonly(mt, true)
-end)
 
 --// Notification Helper
 local function notify(msg)
@@ -78,7 +60,6 @@ local autoRejoinEnabled = false
 local tweenFarmSpeed = 48
 local activeCoinTween = nil
 local isGrabbingGun = false
-local selectedTargetPlayer = nil
 local accentColor = Color3.fromRGB(255, 75, 75)
 
 --// FOV Circle GUI for Silent Aim
@@ -129,7 +110,6 @@ local function getMurdererInFOV()
             end
         end
     end
-    -- Fallback to any murderer if none in FOV circle
     if not bestTarget then
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= player and p.Character and (p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife")) then
@@ -291,7 +271,7 @@ task.spawn(function()
     end
 end)
 
---// Auto Rejoin Handler on Game Over / Round End
+--// Auto Rejoin Handler
 Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(child)
     if autoRejoinEnabled and (child.Name == "GameOver" or child.Name == "EndScreen" or child.Name == "Scoreboard") then
         task.wait(2)
@@ -591,7 +571,7 @@ function Library:Load()
     end
 end
 
-local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v4.0]")
+local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v4.2]")
 
 --// Category 1: Visuals
 local catVisuals = Window:CreateCategory("Visuals")
@@ -711,7 +691,7 @@ for _, p in ipairs(Players:GetPlayers()) do
 end
 
 Library:Load()
-notify("Kyuzxc MM2 Brutal v4.0 loaded!")
+notify("Kyuzxc MM2 Brutal v4.2 loaded!")
 
 --// Visuals GUI Container
 local visualsGui = Instance.new("ScreenGui")
@@ -1026,7 +1006,6 @@ RunService.RenderStepped:Connect(function()
                 billboard.Size = UDim2.new(0, 50, 0, 20)
                 billboard.AlwaysOnTop = true
                 
-                local txt = Instance.new("TextLabel, billboard")
                 local txt = Instance.new("TextLabel", billboard)
                 txt.Size = UDim2.new(1, 0, 1, 0)
                 txt.BackgroundTransparency = 1
