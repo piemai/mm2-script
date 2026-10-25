@@ -1,4 +1,4 @@
---// Kyuzxc MM2 Red Mod Menu (Brutal v3: Tween Coin Farm + Auto-Grab Gun + Kill Aura + Silent Aim)
+--// Kyuzxc MM2 Red Mod Menu (Brutal v3.2: Anti-Fling + Tween Coin Farm + Auto-Grab Gun + Kill Aura)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -49,7 +49,8 @@ local silentAimEnabled = false
 local killAuraRange = 20
 local autoCoinEnabled = false
 local autoGrabGunEnabled = false
-local tweenFarmSpeed = 24 -- Studs per second (Safe anti-rubberband speed)
+local antiFlingEnabled = true -- Enabled by default
+local tweenFarmSpeed = 24
 local activeCoinTween = nil
 local isGrabbingGun = false
 local accentColor = Color3.fromRGB(255, 75, 75)
@@ -66,17 +67,17 @@ local function getMurderer()
     return nil
 end
 
---// Helper: Find Nearest Coin
+--// Robust Coin Finder
 local function getNearestCoin(hrp)
     local nearestCoin = nil
     local shortestDist = math.huge
 
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if (obj.Name == "Coin_Server" or obj.Name == "Coin") and obj:IsA("BasePart") and obj.Parent then
-            -- Verify coin is still active/visible
+        local name = obj.Name
+        if (name == "Coin_Server" or name == "Coin" or name == "CoinVisual" or name == "Gold") and obj:IsA("BasePart") and obj.Parent then
             if obj.Transparency < 1 then
                 local dist = (hrp.Position - obj.Position).Magnitude
-                if dist < shortestDist and dist < 250 then
+                if dist < shortestDist and dist < 400 then
                     shortestDist = dist
                     nearestCoin = obj
                 end
@@ -128,7 +129,7 @@ local function fireSilentAim()
     end
 end
 
---// Floating Silent Aim Button (Mobile / iPad Friendly)
+--// Floating Silent Aim Button
 local silentAimGui = Instance.new("ScreenGui")
 silentAimGui.Name = "KyuzxcSilentAimBtn"
 silentAimGui.ResetOnSpawn = false
@@ -171,7 +172,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
---// Dedicated Tween Coin Farming Thread (Anti-Rubberband)
+--// Dedicated Tween Coin Farming Thread
 task.spawn(function()
     while task.wait(0.05) do
         if autoCoinEnabled and not isGrabbingGun then
@@ -180,21 +181,19 @@ task.spawn(function()
             if myHRP then
                 local targetCoin, dist = getNearestCoin(myHRP)
                 if targetCoin then
-                    -- Disable collisions during tween so walls don't block the path
                     for _, part in ipairs(myChar:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CanCollide = false
                         end
                     end
 
-                    local duration = math.clamp(dist / tweenFarmSpeed, 0.08, 3.5)
+                    local duration = math.clamp(dist / tweenFarmSpeed, 0.05, 3.0)
                     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
                     local goal = { CFrame = CFrame.new(targetCoin.Position + Vector3.new(0, 0.5, 0)) }
 
                     activeCoinTween = TweenService:Create(myHRP, tweenInfo, goal)
                     activeCoinTween:Play()
 
-                    -- Wait until tween finishes, coin disappears, or toggle turns off
                     local startTick = tick()
                     while tick() - startTick < duration do
                         if not autoCoinEnabled or isGrabbingGun or not targetCoin.Parent or targetCoin.Transparency >= 1 then
@@ -203,10 +202,11 @@ task.spawn(function()
                             end
                             break
                         end
-                        -- Zero out velocity to prevent fall-damage/fling buildup
                         myHRP.AssemblyLinearVelocity = Vector3.zero
                         task.wait()
                     end
+                else
+                    task.wait(0.5)
                 end
             end
         else
@@ -505,7 +505,7 @@ function Library:Load()
     end
 end
 
-local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v3]")
+local Window = Library:CreateWindow("kyuzxc mm2 red [brutal v3.2]")
 
 --// Category 1: Visuals
 local catVisuals = Window:CreateCategory("Visuals")
@@ -557,6 +557,10 @@ end)
 
 --// Category 3: Player / Movement
 local catPlayer = Window:CreateCategory("Player")
+catPlayer:CreateTab("anti-fling protection", {enabled = true}, function(tog)
+    antiFlingEnabled = tog
+    notify("Anti-Fling: " .. (tog and "ON" or "OFF"))
+end)
 catPlayer:CreateTab("speed hack", {enabled = false}, function(tog)
     speedEnabled = tog
     if not tog and player.Character then
@@ -631,7 +635,7 @@ catTeleport:CreateTab("teleport to spawn", {isButton = true}, function()
 end)
 
 Library:Load()
-notify("Kyuzxc MM2 Brutal v3 loaded!")
+notify("Kyuzxc MM2 Brutal v3.2 loaded!")
 
 --// Visuals GUI Container para sa Boxes at Tracers
 local visualsGui = Instance.new("ScreenGui")
@@ -674,6 +678,19 @@ RunService.RenderStepped:Connect(function()
     local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
     local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
 
+    -- Anti-Fling Protection (Nullifies external velocity/spin flings)
+    if antiFlingEnabled and myHRP then
+        myHRP.AssemblyAngularVelocity = Vector3.zero
+        for _, otherPlayer in ipairs(Players:GetPlayers()) do
+            if otherPlayer ~= player and otherPlayer.Character then
+                local otherRoot = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if otherRoot then
+                    otherRoot.RotVelocity = Vector3.zero
+                end
+            end
+        end
+    end
+
     -- Speed Hack
     if speedEnabled and myHum then
         myHum.WalkSpeed = customSpeed
@@ -688,7 +705,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Auto-Grab Dropped Gun (With Safe Return-to-Origin)
+    -- Auto-Grab Dropped Gun
     if autoGrabGunEnabled and myChar and myHRP and myHum and myHum.Health > 0 and not isGrabbingGun then
         local hasKnife = myChar:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
         local hasGun = myChar:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun") or myChar:FindFirstChild("Revolver") or player.Backpack:FindFirstChild("Revolver")
@@ -721,7 +738,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Knife Kill Aura (Murderer Brutal Reach + Touch Interest)
+    -- Knife Kill Aura
     if killAuraEnabled and myChar and myHRP then
         local knife = myChar:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
         if knife then
@@ -945,22 +962,19 @@ RunService.RenderStepped:Connect(function()
     -- Strict Coin ESP Handler
     if coinEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj.Name == "CoinContainer" or obj.Name == "Coin" or obj.Name == "Coin_Server" then
-                for _, coin in ipairs(obj:GetDescendants()) do
-                    if coin:IsA("BasePart") and not coin:FindFirstChild("CoinTag") then
-                        local billboard = Instance.new("BillboardGui", coin)
-                        billboard.Name = "CoinTag"
-                        billboard.Size = UDim2.new(0, 50, 0, 20)
-                        billboard.AlwaysOnTop = true
-                        
-                        local txt = Instance.new("TextLabel", billboard)
-                        txt.Size = UDim2.new(1, 0, 1, 0)
-                        txt.BackgroundTransparency = 1
-                        txt.TextColor3 = Color3.fromRGB(255, 215, 0)
-                        txt.Text = "COIN"
-                        txt.TextScaled = true
-                    end
-                end
+            local name = obj.Name
+            if (name == "Coin_Server" or name == "Coin" or name == "CoinVisual" or name == "Gold") and obj:IsA("BasePart") and not obj:FindFirstChild("CoinTag") then
+                local billboard = Instance.new("BillboardGui", obj)
+                billboard.Name = "CoinTag"
+                billboard.Size = UDim2.new(0, 50, 0, 20)
+                billboard.AlwaysOnTop = true
+                
+                local txt = Instance.new("TextLabel", billboard)
+                txt.Size = UDim2.new(1, 0, 1, 0)
+                txt.BackgroundTransparency = 1
+                txt.TextColor3 = Color3.fromRGB(255, 215, 0)
+                txt.Text = "COIN"
+                txt.TextScaled = true
             end
         end
     else
