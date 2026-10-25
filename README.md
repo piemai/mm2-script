@@ -17,4 +17,4 @@ Isang custom script at mod menu para sa **Murder Mystery 2 (MM2)** sa Roblox, na
 I-copy at i-paste lamang ang sumusunod na loadstring sa iyong executor:
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/piemai/mm2-script/refs/heads/main/mm2_script.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/piemai/mm2-script/refs/heads/main/mm2%20script%20AUTO%20KILL"))()
