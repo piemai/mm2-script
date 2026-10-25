@@ -1,20 +1,21 @@
---// Kyuzxc MM2 Red Mod Menu (PlayerGui Fixed Edition)
+--// Kyuzxc MM2 Red Mod Menu (Final Updated Version)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local Camera = workspace.CurrentCamera
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local uiParent = (gethui and gethui()) or CoreGui
 
 -- Linisin ang lumang UI kung naka-load na
-if playerGui:FindFirstChild("KyuzxcModMenu") then
-    playerGui.KyuzxcModMenu:Destroy()
+if uiParent:FindFirstChild("KyuzxcMM2Menu") then
+    uiParent.KyuzxcMM2Menu:Destroy()
 end
-if playerGui:FindFirstChild("KyuzxcMM2Visuals") then
-    playerGui.KyuzxcMM2Visuals:Destroy()
+if uiParent:FindFirstChild("KyuzxcMM2Visuals") then
+    uiParent.KyuzxcMM2Visuals:Destroy()
 end
 
 --// Notification Helper
@@ -88,10 +89,10 @@ end
 
 function Library:Load()
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KyuzxcModMenu"
+    screenGui.Name = "KyuzxcMM2Menu"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    screenGui.Parent = playerGui
+    screenGui.Parent = uiParent
     
     for _, win in ipairs(self.Windows) do
         local mainFrame = Instance.new("Frame")
@@ -152,10 +153,10 @@ function Library:Load()
         
         closeBtn.MouseButton1Click:Connect(function()
             screenGui:Destroy()
-            if playerGui:FindFirstChild("KyuzxcMM2Visuals") then
-                playerGui.KyuzxcMM2Visuals:Destroy()
+            if uiParent:FindFirstChild("KyuzxcMM2Visuals") then
+                uiParent.KyuzxcMM2Visuals:Destroy()
             end
-            notify("Menu closed and unloaded.")
+            notify("MM2 Menu closed.")
         end)
         
         --// Minimize Button
@@ -382,7 +383,7 @@ catPlayer:CreateTab("noclip", {enabled = false}, function(tog)
     end
     notify("Noclip: " .. (tog and "ON" or "OFF"))
 end)
-catPlayer:CreateTab("auto-kill (any role)", {enabled = false}, function(tog)
+catPlayer:CreateTab("auto-kill murderer", {enabled = false}, function(tog)
     autoKillEnabled = tog
     notify("Auto-Kill: " .. (tog and "ON" or "OFF"))
 end)
@@ -451,7 +452,7 @@ visualsGui.Name = "KyuzxcMM2Visuals"
 visualsGui.ResetOnSpawn = false
 visualsGui.IgnoreGuiInset = true
 visualsGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-visualsGui.Parent = playerGui
+visualsGui.Parent = uiParent
 
 local espCache = {}
 
@@ -488,7 +489,7 @@ RunService.RenderStepped:Connect(function()
         if hum then hum.WalkSpeed = customSpeed end
     end
 
-    -- Stable Noclip Execution
+    -- Noclip
     if noclipEnabled and player.Character then
         for _, part in ipairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -497,23 +498,28 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Universal Auto-Kill Murderer Logic
+    -- Fixed Auto-Kill Murderer Logic (With prediction & aiming)
     if autoKillEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
-                if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
-                    local murdererPart = p.Character.HumanoidRootPart
-                    local murdererHead = p.Character.Head
-                    
-                    player.Character.HumanoidRootPart.CFrame = murdererPart.CFrame * CFrame.new(0, 0, 3)
-                    
-                    pcall(function()
-                        local shootRemote = ReplicatedStorage:FindFirstChild("ShootGun", true) or game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("ShootGun")
-                        if shootRemote then
-                            local targetPos = murdererHead.Position + (murdererPart.AssemblyLinearVelocity * 0.1)
-                            shootRemote:InvokeServer(targetPos)
-                        end
-                    end)
+        local hasGun = player.Backpack:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Revolver") or player.Character:FindFirstChild("Gun") or player.Character:FindFirstChild("Revolver")
+        if hasGun then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
+                    if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+                        local murdererPart = p.Character.HumanoidRootPart
+                        local murdererHead = p.Character.Head
+                        
+                        -- Ilapit ang sarili para sure hit
+                        player.Character.HumanoidRootPart.CFrame = murdererPart.CFrame * CFrame.new(0, 0, 4)
+                        
+                        -- Barilin gamit ang shoot remote at prediction
+                        pcall(function()
+                            local shootRemote = ReplicatedStorage:FindFirstChild("ShootGun", true) or game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("ShootGun")
+                            if shootRemote then
+                                local targetPos = murdererHead.Position + (murdererPart.AssemblyLinearVelocity * 0.1)
+                                shootRemote:InvokeServer(targetPos)
+                            end
+                        end)
+                    end
                 end
             end
         end
@@ -659,7 +665,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Gun Drop ESP
+    -- Gun Drop ESP (Tanging mga nahulog na baril lamang)
     if gunEspEnabled then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj.Name == "GunDrop" and obj:IsA("BasePart") then
